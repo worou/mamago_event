@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useConfig } from '../../context/ConfigContext'
 import { useFavorites } from '../../context/FavoritesContext'
+import MobileMenu from './MobileMenu'
 import { BrandMark, Button, cx } from '../ui'
 import {
   ChevronDownIcon,
@@ -166,12 +167,14 @@ export default function Header() {
   return (
     <header className={cx('sticky top-0 z-40 border-b', theme.bar)}>
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex shrink-0 items-center gap-2 font-bold">
+        <Link to="/" className="flex min-w-0 shrink items-center gap-2 font-bold">
           <BrandMark src={config.logo} />
-          <span className="text-lg tracking-tight">{config.businessName}</span>
+          <span className="hidden truncate text-lg tracking-tight sm:block">
+            {config.businessName}
+          </span>
         </Link>
 
-        <nav className="ml-4 hidden items-center gap-1 lg:flex">
+        <nav className="ml-4 hidden items-center gap-1 xl:flex">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
@@ -189,7 +192,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <form onSubmit={handleSearch} className="ml-auto hidden max-w-xs flex-1 md:block">
+        <form onSubmit={handleSearch} className="ml-auto hidden max-w-xs flex-1 lg:block">
           <label className="sr-only" htmlFor="header-search">
             Rechercher un événement
           </label>
@@ -209,11 +212,11 @@ export default function Header() {
           </div>
         </form>
 
-        <div className="ml-auto flex items-center gap-1.5 md:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-0">
           <Link
             to="/favoris"
             title="Mes favoris"
-            className={cx('relative hidden rounded-lg p-2 sm:block', theme.icon)}
+            className={cx('relative hidden rounded-lg p-2 md:block', theme.icon)}
           >
             <HeartIcon className="h-5 w-5" />
             {count > 0 && (
@@ -225,16 +228,18 @@ export default function Header() {
           </Link>
 
           {isAuthenticated ? (
-            <AccountMenu theme={theme} />
+            <span className="hidden lg:block">
+              <AccountMenu theme={theme} />
+            </span>
           ) : (
             <>
               <Link
                 to="/connexion"
-                className={cx('rounded-lg px-3 py-2 text-sm font-medium', theme.link)}
+                className={cx('hidden rounded-lg px-3 py-2 text-sm font-medium lg:block', theme.link)}
               >
                 Connexion
               </Link>
-              <Button as="link" to="/inscription" size="sm" className="hidden sm:inline-flex">
+              <Button as="link" to="/inscription" size="sm" className="hidden lg:inline-flex">
                 Créer un compte
               </Button>
             </>
@@ -245,7 +250,7 @@ export default function Header() {
             onClick={() => setIsMenuOpen((open) => !open)}
             aria-expanded={isMenuOpen}
             aria-label="Ouvrir le menu"
-            className={cx('rounded-lg p-2 lg:hidden', theme.icon)}
+            className={cx('shrink-0 rounded-lg p-2 xl:hidden', theme.icon)}
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
@@ -254,41 +259,14 @@ export default function Header() {
         </div>
       </div>
 
-      {isMenuOpen && (
-        <div className={cx('border-t px-4 py-3 lg:hidden', theme.bar)}>
-          <form onSubmit={handleSearch} className="mb-3 md:hidden">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un événement..."
-              className={cx('w-full rounded-full border px-4 py-2 text-sm focus:outline-none', theme.search)}
-            />
-          </form>
-          <nav className="flex flex-col">
-            {NAV.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={() => setIsMenuOpen(false)}
-                className={cx('rounded-lg px-3 py-2.5 text-sm', theme.link)}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            {isAuthenticated && (
-              <NavLink
-                to="/mes-reservations"
-                onClick={() => setIsMenuOpen(false)}
-                className={cx('rounded-lg px-3 py-2.5 text-sm', theme.link)}
-              >
-                Mes réservations
-              </NavLink>
-            )}
-          </nav>
-        </div>
-      )}
+      <MobileMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        navItems={NAV}
+        query={query}
+        onQueryChange={setQuery}
+        onSearch={handleSearch}
+      />
     </header>
   )
 }
