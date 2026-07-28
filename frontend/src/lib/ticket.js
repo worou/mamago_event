@@ -39,7 +39,8 @@ export async function downloadTicketPdf({ ticket, event, config }) {
   const pageWidth = doc.internal.pageSize.getWidth()
   const margin = 18
 
-  const brand = [79, 70, 229]
+  // Vert de marque, aligné sur --color-brand-600 de la feuille de styles.
+  const brand = [10, 125, 74]
   const ink = [15, 23, 42]
   const muted = [100, 116, 139]
 

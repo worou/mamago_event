@@ -1,26 +1,41 @@
 @import 'tailwindcss';
 
-/* Tokens repris des maquettes : violet dominant, vert réservé aux états de succès. */
+/*
+ * Couleur de marque : le vert du logo MamaGo.
+ *
+ * Échantillonné directement sur le fichier du logo — sa teinte dominante
+ * saturée est #008040 (teinte 150, saturation 100 %). L'échelle ci-dessous
+ * est construite autour de cette teinte.
+ *
+ * Contrastes vérifiés : blanc sur brand-600 = 5,19:1, brand-700 sur blanc
+ * = 7,36:1, brand-600 sur brand-50 = 4,81:1 — tous au-dessus du seuil AA
+ * de 4,5:1 pour du texte normal.
+ */
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+  --color-brand-50: #eafaf1;
+  --color-brand-100: #cdf2de;
+  --color-brand-200: #9ce4bf;
+  --color-brand-300: #64d09b;
+  --color-brand-400: #31b578;
+  --color-brand-500: #12995d;
+  --color-brand-600: #0a7d4a;
+  --color-brand-700: #076339;
+  --color-brand-800: #064e2e;
+  --color-brand-900: #054027;
 
+  /*
+   * États de succès : volontairement plus clairs et plus vifs que la
+   * marque, pour rester distinguables maintenant que celle-ci est verte.
+   */
   --color-success-50: #ecfdf5;
   --color-success-100: #d1fae5;
   --color-success-500: #10b981;
   --color-success-600: #059669;
   --color-success-700: #047857;
 
-  --color-ink-950: #0b0b12;
-  --color-ink-900: #14141f;
+  /* Surfaces sombres, très légèrement teintées de vert pour s'accorder. */
+  --color-ink-950: #07110d;
+  --color-ink-900: #0d1a14;
 
   --font-sans:
     'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
