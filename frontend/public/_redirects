@@ -1,0 +1,3 @@
+# Repli SPA pour Netlify / Cloudflare Pages.
+# Voir public/.htaccess pour Apache et README.md pour Nginx.
+/*  /index.html  200

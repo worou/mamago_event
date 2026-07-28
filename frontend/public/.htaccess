@@ -1,0 +1,18 @@
+# Repli SPA pour Apache (le backend MamaGo tourne déjà sous Apache).
+#
+# Sans cette règle, toute URL demandée directement — retour depuis la page de
+# paiement vers /reservation/confirmation, rafraîchissement d'une fiche
+# /evenements/12, lien partagé — renvoie une 404 : ces chemins n'existent que
+# côté client.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Les fichiers et dossiers réellement présents sont servis tels quels.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Tout le reste est confié au routeur de l'application.
+  RewriteRule ^ index.html [L]
+</IfModule>

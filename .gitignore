@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Réglages locaux de l'outillage : chemins absolus, propres à une machine.
+.claude/
+
+*.log
+npm-debug.log*
