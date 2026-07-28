@@ -158,6 +158,31 @@ curl -o /dev/null -w '%{http_code}\n' \
 
 ## Tests de paiement
 
+### Où placer les clés Stripe
+
+Les deux clés se configurent dans l'**administration MamaGo**, jamais dans ce
+dépôt.
+
+| Clé | Emplacement | Pourquoi |
+| --- | --- | --- |
+| `sk_…` (secrète) | Admin MamaGo uniquement | Elle autorise à créer et rembourser des paiements. Elle ne doit jamais quitter le serveur. |
+| `pk_…` (publiable) | Nulle part ici | Elle ne sert qu'à Stripe.js ; ce frontend n'intègre pas Stripe, le paiement passe par la page hébergée du backend. |
+
+⚠️ **Ne jamais mettre de clé dans une variable `VITE_*`.** Vite les inline en
+clair dans le bundle JavaScript : la clé serait servie à chaque visiteur.
+
+Une vérification est disponible avant chaque push :
+
+```bash
+npm run check-secrets
+```
+
+Elle échoue si un fichier versionné contient une clé secrète Stripe, une clé
+privée, un jeton GitHub ou une clé AWS. Une clé commitée doit être considérée
+comme divulguée, même après retrait : ni l'historique git ni les caches ne
+s'effacent. Dans ce cas, faites-la tourner depuis le tableau de bord Stripe
+(*Developers → API keys → Roll key*).
+
 ### Mettre Stripe en mode test — côté serveur uniquement
 
 **Aucun réglage du frontend ne met Stripe en mode test.** Le basculement se

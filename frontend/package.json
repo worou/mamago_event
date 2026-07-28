@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "smoke": "node scripts/smoke-api.mjs"
+    "smoke": "node scripts/smoke-api.mjs",
+    "check-secrets": "node scripts/check-secrets.mjs"
   },
   "dependencies": {
     "jspdf": "^3.0.1",
