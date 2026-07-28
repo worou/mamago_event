@@ -214,9 +214,23 @@ echo "VITE_SANDBOX=1" >> .env.local
 npm run dev
 ```
 
-Un bandeau ambre reste affiché tant qu'il est actif, et permet de basculer
-l'issue simulée entre succès et échec — le chemin d'échec du tunnel étant
-sinon impossible à provoquer.
+Une pastille « BAC À SABLE » reste affichée en bas à gauche tant qu'il est
+actif. Elle donne accès à deux réglages :
+
+- **l'issue simulée du paiement** (succès par défaut, échec au choix), le
+  chemin d'échec du tunnel étant sinon impossible à provoquer ;
+- **la réinitialisation** de la session et des commandes simulées.
+
+> Si une réservation échoue systématiquement, vérifier ce réglage : laissé
+> sur « Échec », il fait échouer tous les paiements simulés. La pastille
+> passe au rouge dans ce cas.
+
+Les tarifs du catalogue réel s'échelonnent de 1 000 à 10 000 €, peu
+parlants pour une démonstration. En bac à sable, ils sont réécrits à
+**99 €** (`VITE_SANDBOX_PRICE` pour une autre valeur), à la source, ce qui
+les rend cohérents partout : fiche, récapitulatif, total, billet et PDF.
+Hors bac à sable, les prix de l'API restent intouchés — les modifier ferait
+diverger le montant affiché du montant réellement débité.
 
 Sont simulés : la session (`auth/login`, `customer/info`), la réservation
 (`ticket/book`), la liste des billets (`ticket/list`) et la redirection de

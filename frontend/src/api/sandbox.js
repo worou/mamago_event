@@ -23,6 +23,49 @@
 const STORAGE_KEY = 'mamago.sandbox.orders'
 const OUTCOME_KEY = 'mamago.sandbox.outcome'
 
+/**
+ * Prix de démonstration.
+ *
+ * Le catalogue réel affiche des tarifs à 1 000–10 000 €, peu parlants pour
+ * une présentation. En bac à sable — donc sans paiement réel — les tarifs
+ * sont réécrits à la source, ce qui les rend cohérents partout : fiche,
+ * récapitulatif, total, billet et PDF.
+ *
+ * Hors bac à sable, les prix de l'API sont intouchés : les modifier
+ * ferait diverger le montant affiché du montant réellement débité.
+ */
+const DEMO_PRICE = Number(import.meta.env.VITE_SANDBOX_PRICE ?? 99)
+
+function applyDemoPrices(payload) {
+  if (!Number.isFinite(DEMO_PRICE) || DEMO_PRICE <= 0) return payload
+
+  const rewrite = (event) => {
+    if (!event || typeof event !== 'object') return event
+    return {
+      ...event,
+      price: event.price === 0 ? 0 : DEMO_PRICE,
+      prices: Array.isArray(event.prices)
+        ? event.prices.map((tier, index) => ({
+            ...tier,
+            // Un écart léger entre catégories pour que la grille reste lisible.
+            price: Number(tier.price) === 0 ? 0 : DEMO_PRICE + index * 50,
+          }))
+        : event.prices,
+    }
+  }
+
+  if (Array.isArray(payload?.events)) {
+    return { ...payload, events: payload.events.map(rewrite) }
+  }
+  if (Array.isArray(payload?.banners)) {
+    return {
+      ...payload,
+      banners: payload.banners.map((b) => ({ ...b, event: rewrite(b.event) })),
+    }
+  }
+  return payload
+}
+
 export function isSandboxEnabled() {
   return Boolean(import.meta.env.DEV && import.meta.env.VITE_SANDBOX === '1')
 }
@@ -75,16 +118,18 @@ function json(body, status = 200) {
 }
 
 /**
- * Les événements ne sont jamais simulés : le bac à sable relaie l'API
- * réelle pour tout ce qui est public, afin que l'interface soit confrontée
- * aux vraies données (prix, quotas, champs manquants).
+ * Événement source d'une commande simulée.
+ *
+ * Les mêmes tarifs de démonstration que ceux affichés y sont appliqués :
+ * sans cela, la commande serait valorisée au prix réel de l'API alors que
+ * l'écran annonce le prix de démonstration.
  */
 async function fetchRealEvent(realFetch, eventId) {
   try {
     const res = await realFetch(
       `${import.meta.env.VITE_API_BASE_URL ?? 'https://frstore.mamagoapps.com'}/api/v2/events/list`,
     )
-    const payload = await res.json()
+    const payload = applyDemoPrices(await res.json())
     return (payload.events ?? []).find((e) => String(e.id) === String(eventId)) ?? null
   } catch {
     return null
@@ -187,6 +232,17 @@ export function installSandbox() {
 
     if (url.includes('/events/ticket/list')) {
       return json(readOrders())
+    }
+
+    // --- Catalogue : données réelles, tarifs de démonstration ---
+    if (/\/events\/(list|today|top|banner\/list)/.test(url)) {
+      const res = await realFetch(input, init)
+      if (!res.ok) return res
+      try {
+        return json(applyDemoPrices(await res.clone().json()))
+      } catch {
+        return res
+      }
     }
 
     return realFetch(input, init)
