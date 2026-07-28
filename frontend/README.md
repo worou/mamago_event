@@ -156,6 +156,62 @@ curl -o /dev/null -w '%{http_code}\n' \
   'http://localhost:4173/reservation/confirmation?status=success'   # attendu : 200
 ```
 
+## Tests de paiement
+
+### Mettre Stripe en mode test — côté serveur uniquement
+
+**Aucun réglage du frontend ne met Stripe en mode test.** Le basculement se
+fait dans l'administration MamaGo : *Payment Methods → Stripe → Test/Live*,
+avec ses propres clés publiable et secrète. L'API le confirme :
+`active_payment_method_list` expose le titre et le logo de la passerelle,
+jamais son mode ni ses clés.
+
+Une fois le mode test activé, le tunnel se teste de bout en bout avec les
+cartes de test Stripe, sur la page de paiement hébergée par le backend :
+
+| Carte | Résultat |
+| --- | --- |
+| `4242 4242 4242 4242` | Paiement accepté |
+| `4000 0000 0000 0002` | Paiement refusé |
+| `4000 0025 0000 3155` | Authentification 3D Secure demandée |
+
+Date d'expiration future quelconque, CVC quelconque. Les transactions
+apparaissent ensuite dans le tableau de bord Stripe, vue « mode test ».
+
+### Bac à sable frontend
+
+Indépendamment de Stripe, un bac à sable permet de parcourir le tunnel
+sans compte, sans commande réelle et sans paiement — ce qui est autrement
+impossible, les routes de réservation renvoyant 401.
+
+```bash
+echo "VITE_SANDBOX=1" >> .env.local
+npm run dev
+```
+
+Un bandeau ambre reste affiché tant qu'il est actif, et permet de basculer
+l'issue simulée entre succès et échec — le chemin d'échec du tunnel étant
+sinon impossible à provoquer.
+
+Sont simulés : la session (`auth/login`, `customer/info`), la réservation
+(`ticket/book`), la liste des billets (`ticket/list`) et la redirection de
+paiement. Tout le reste — configuration, événements, catégories, bannières —
+part vers le vrai serveur, pour que l'interface reste confrontée aux vraies
+données.
+
+Le module est chargé par import dynamique sous une condition statiquement
+fausse en production : il est **absent du bundle**, pas seulement inactif.
+Vérifiable après `npm run build` :
+
+```bash
+grep -rl "sandbox-token" dist/assets/*.js   # aucun résultat attendu
+```
+
+> ⚠️ La fixture de `ticket/list` reproduit les **suppositions** de
+> `adaptTicket`, la vraie forme n'ayant pas pu être observée. Un parcours
+> réussi dans le bac à sable valide l'interface, pas l'intégration : il ne
+> referme pas le point ouvert ci-dessous.
+
 ## Point ouvert : `ticket/book`
 
 `POST /api/v2/customer/events/ticket/book` est authentifié et répond 401 sans
