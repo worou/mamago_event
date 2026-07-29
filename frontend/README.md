@@ -249,12 +249,15 @@ actif. Elle donne accès à deux réglages :
 > sur « Échec », il fait échouer tous les paiements simulés. La pastille
 > passe au rouge dans ce cas.
 
-Les tarifs du catalogue réel s'échelonnent de 1 000 à 10 000 €, peu
-parlants pour une démonstration. En bac à sable, ils sont réécrits à
-**99 €** (`VITE_SANDBOX_PRICE` pour une autre valeur), à la source, ce qui
-les rend cohérents partout : fiche, récapitulatif, total, billet et PDF.
-Hors bac à sable, les prix de l'API restent intouchés — les modifier ferait
-diverger le montant affiché du montant réellement débité.
+**Les tarifs affichés sont ceux du catalogue réel**, y compris en bac à
+sable : celui-ci ne simule que ce qu'il ne peut pas faire autrement, à
+savoir la session, la réservation et le paiement.
+
+Si le catalogue contient des montants peu présentables, `VITE_SANDBOX_PRICE=99`
+force un tarif uniforme. La réécriture a lieu sur les réponses de l'API, donc
+en amont des adaptateurs : fiche, récapitulatif, total, billet et PDF restent
+cohérents entre eux. Hors bac à sable, aucun prix n'est jamais modifié —
+les altérer ferait diverger le montant affiché du montant réellement débité.
 
 Sont simulés : la session (`auth/login`, `customer/info`), la réservation
 (`ticket/book`), la liste des billets (`ticket/list`) et la redirection de

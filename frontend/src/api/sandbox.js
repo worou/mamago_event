@@ -24,20 +24,27 @@ const STORAGE_KEY = 'mamago.sandbox.orders'
 const OUTCOME_KEY = 'mamago.sandbox.outcome'
 
 /**
- * Prix de démonstration.
+ * Prix de démonstration — désactivés par défaut.
  *
- * Le catalogue réel affiche des tarifs à 1 000–10 000 €, peu parlants pour
- * une présentation. En bac à sable — donc sans paiement réel — les tarifs
- * sont réécrits à la source, ce qui les rend cohérents partout : fiche,
- * récapitulatif, total, billet et PDF.
+ * Le bac à sable ne simule que ce qu'il ne peut pas faire autrement :
+ * session, réservation et paiement. Les tarifs, eux, viennent du vrai
+ * catalogue, afin que ce qui est affiché corresponde à la réalité.
  *
- * Hors bac à sable, les prix de l'API sont intouchés : les modifier
- * ferait diverger le montant affiché du montant réellement débité.
+ * `VITE_SANDBOX_PRICE=99` force un tarif uniforme, utile seulement lorsque
+ * le catalogue affiche des montants peu présentables. Sans cette variable,
+ * aucun prix n'est touché.
+ *
+ * Hors bac à sable, les prix ne sont jamais modifiés : les altérer ferait
+ * diverger le montant affiché du montant réellement débité.
  */
-const DEMO_PRICE = Number(import.meta.env.VITE_SANDBOX_PRICE ?? 99)
+const DEMO_PRICE = import.meta.env.VITE_SANDBOX_PRICE
+  ? Number(import.meta.env.VITE_SANDBOX_PRICE)
+  : null
 
 function applyDemoPrices(payload) {
-  if (!Number.isFinite(DEMO_PRICE) || DEMO_PRICE <= 0) return payload
+  if (DEMO_PRICE === null || !Number.isFinite(DEMO_PRICE) || DEMO_PRICE <= 0) {
+    return payload
+  }
 
   const rewrite = (event) => {
     if (!event || typeof event !== 'object') return event
