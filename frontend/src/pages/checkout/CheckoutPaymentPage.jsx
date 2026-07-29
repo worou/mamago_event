@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { bookTicket } from '../../api/services'
-import { collectPayment } from '../../lib/payment'
+import { Elements, useElements, useStripe } from '@stripe/react-stripe-js'
+import {
+  createPaymentIntent,
+  describeStripeError,
+  getStripe,
+  isCardPaymentConfigured,
+} from '../../lib/payment'
+import { CardElement } from '@stripe/react-stripe-js'
+import StripeCardForm from '../../components/checkout/StripeCardForm'
 import { useAuth } from '../../context/AuthContext'
 import { useBooking } from '../../context/BookingContext'
 import { useConfig } from '../../context/ConfigContext'
@@ -14,7 +22,7 @@ import { TrustStrip } from '../../components/layout/Footer'
 import { Alert, Button, Field } from '../../components/ui'
 import { ArrowLeftIcon, LockIcon, ShieldIcon } from '../../components/Icons'
 
-export default function CheckoutPaymentPage() {
+function CheckoutPaymentInner() {
   const navigate = useNavigate()
   const { config } = useConfig()
   const { isAuthenticated, user } = useAuth()
@@ -26,6 +34,11 @@ export default function CheckoutPaymentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [promoCode, setPromoCode] = useState('')
   const [promoNotice, setPromoNotice] = useState(null)
+  const [holderName, setHolderName] = useState('')
+  const [cardError, setCardError] = useState(null)
+
+  const stripe = useStripe()
+  const elements = useElements()
 
   /**
    * Les passerelles en ligne viennent de la configuration serveur ; le
@@ -97,15 +110,45 @@ export default function CheckoutPaymentPage() {
       // Une seule ligne : la sélection est contrainte à une catégorie.
       const [line] = lines
 
-      const transactionId = isOffline
-        ? // Règlement sur place : rien n'est encaissé en ligne, la référence
-          // sert seulement à retrouver la réservation le jour J.
-          `SUR-PLACE-${Date.now().toString(36).toUpperCase()}`
-        : await collectPayment({ amount: total, method: activeMethod })
+      const [firstLine] = lines
 
-      if (!transactionId) {
-        setIsSubmitting(false)
-        return
+      let transactionId
+      if (isOffline) {
+        // Règlement sur place : rien n'est encaissé en ligne, la référence
+        // sert seulement à retrouver la réservation le jour J.
+        transactionId = `SUR-PLACE-${Date.now().toString(36).toUpperCase()}`
+      } else {
+        // Le montant n'est pas transmis : le serveur le recalcule depuis
+        // l'événement et le tarif.
+        const { clientSecret } = await createPaymentIntent({
+          eventId: event.id,
+          ticketType: firstLine.tier.type,
+          seats: firstLine.quantity,
+        })
+
+        const result = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: elements.getElement(CardElement),
+            billing_details: { name: holderName || undefined },
+          },
+        })
+
+        if (result.error) {
+          setCardError(describeStripeError(result.error))
+          setIsSubmitting(false)
+          return
+        }
+
+        // La réservation n'est enregistrée qu'une fois le paiement abouti.
+        if (result.paymentIntent?.status !== 'succeeded') {
+          setError(
+            "Le paiement n'a pas été confirmé. Aucun montant n'a été débité.",
+          )
+          setIsSubmitting(false)
+          return
+        }
+
+        transactionId = result.paymentIntent.id
       }
 
       const ticket = await bookTicket({
@@ -228,35 +271,21 @@ export default function CheckoutPaymentPage() {
                 redirection vers la page de paiement du backend.
               */}
               {activeMethod && !isOffline && (
-                <div className="mt-4 rounded-xl border border-slate-200 p-5">
-                  <div className="flex items-start gap-3">
-                    <LockIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        Saisie sécurisée de votre carte
-                      </p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        Après validation, vous serez redirigé vers la page de
-                        paiement sécurisée pour saisir vos informations
-                        bancaires. Vos coordonnées de carte ne transitent jamais
-                        par ce site.
-                      </p>
-                    </div>
+                isCardPaymentConfigured() ? (
+                  <div className="mt-4">
+                    <StripeCardForm
+                      holderName={holderName}
+                      onHolderNameChange={setHolderName}
+                      error={cardError}
+                    />
                   </div>
-
-                  <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-center">
-                    {[
-                      ['Chiffrement', 'SSL'],
-                      ['Confirmation', 'Instantanée'],
-                      ['Protection', 'Des données'],
-                    ].map(([label, value]) => (
-                      <div key={label}>
-                        <dt className="text-xs text-slate-500">{label}</dt>
-                        <dd className="text-sm font-semibold text-slate-800">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
+                ) : (
+                  <Alert tone="warning" className="mt-4">
+                    La clé publiable Stripe n'est pas configurée. Renseignez
+                    <code className="mx-1 font-mono">VITE_STRIPE_PUBLISHABLE_KEY</code>
+                    dans <code className="font-mono">.env.local</code>.
+                  </Alert>
+                )
               )}
 
               {isOffline && (
@@ -284,7 +313,7 @@ export default function CheckoutPaymentPage() {
                 size="lg"
                 onClick={handlePay}
                 isLoading={isSubmitting}
-                disabled={!activeMethod}
+                disabled={!activeMethod || (!isOffline && !stripe)}
               >
                 <LockIcon className="h-5 w-5" />
                 Payer {formatMoney(total, config)}
@@ -298,5 +327,19 @@ export default function CheckoutPaymentPage() {
         <TrustStrip />
       </div>
     </div>
+  )
+}
+
+/**
+ * `useStripe` et `useElements` ne sont accessibles que sous `<Elements>` :
+ * la page est donc scindée, l'enveloppe restant purement structurelle.
+ */
+export default function CheckoutPaymentPage() {
+  const stripePromise = getStripe()
+
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutPaymentInner />
+    </Elements>
   )
 }

@@ -53,6 +53,19 @@ export const EVENTS_NEAR_LIST_URI = '/api/v2/events/nearme'
  */
 export const BOOK_TICKET_URI = '/api/v2/events/ticket/web/book'
 
+/**
+ * Création de l'intention de paiement, à ajouter côté serveur.
+ *
+ * Voir `backend-a-ajouter/README.md` : le contrôleur Laravel y est fourni.
+ * Confirmer un paiement Stripe exige un `client_secret` produit avec la
+ * clé secrète, laquelle ne peut pas vivre dans le navigateur.
+ *
+ * Contrat attendu (form-urlencoded, comme la réservation) :
+ *   event_id, ticket_type, seat
+ *   → { client_secret, transaction_id, amount, currency }
+ */
+export const PAYMENT_INTENT_URI = '/api/v2/events/ticket/web/payment-intent'
+
 /** Variante authentifiée, conservée pour référence : renvoie 401 sans jeton. */
 export const BOOK_TICKET_CUSTOMER_URI = '/api/v2/customer/events/ticket/book'
 

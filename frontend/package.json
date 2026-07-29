@@ -11,6 +11,8 @@
     "check-secrets": "node scripts/check-secrets.mjs"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^6.8.0",
+    "@stripe/stripe-js": "^9.12.1",
     "jspdf": "^3.0.1",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",

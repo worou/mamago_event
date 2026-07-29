@@ -1,40 +1,72 @@
-import { ApiError } from '../api/client'
+import { loadStripe } from '@stripe/stripe-js'
+import { api } from '../api/client'
+import { PAYMENT_INTENT_URI } from '../api/endpoints'
 
 /**
- * Encaissement, préalable à l'enregistrement de la réservation.
+ * Instance Stripe, chargée une seule fois.
  *
- * ────────────────────────────────────────────────────────────────────────
- * ÉTAPE NON RACCORDÉE — décision serveur en attente.
- *
- * `ticket/web/book` consigne une réservation *déjà payée* : elle attend un
- * `transaction_id` et n'encaisse rien elle-même. Il faut donc que le
- * paiement aboutisse avant l'appel.
- *
- * Or aucun moyen d'y parvenir depuis le navigateur n'existe aujourd'hui :
- *
- * - confirmer un paiement Stripe exige un `client_secret` issu d'un
- *   PaymentIntent créé côté serveur. Les routes correspondantes ont été
- *   cherchées et répondent toutes 404 ;
- * - la clé publiable seule ne permet que `createPaymentMethod` ou
- *   `createToken`, qui produisent un identifiant **sans qu'aucun montant
- *   ne soit débité**. L'employer comme `transaction_id` enregistrerait des
- *   réservations impayées présentées comme réglées ;
- * - la page hébergée `/payment-mobile` exige une commande préexistante,
- *   que ce parcours ne crée pas.
- *
- * Plutôt que de simuler, la fonction échoue avec un message explicite.
- * Le paiement sur place, lui, ne passe pas par ici : il n'encaisse rien.
- * ────────────────────────────────────────────────────────────────────────
- *
- * Pour raccorder l'étape, il suffira de renvoyer ici l'identifiant de
- * transaction fourni par la passerelle retenue.
+ * Seule la clé **publiable** est employée : c'est son rôle, et elle ne
+ * permet que de confirmer un paiement dont le serveur a déjà créé
+ * l'intention. La clé secrète ne doit jamais figurer ici — Vite inline
+ * toute variable `VITE_*` en clair dans le bundle.
  */
-export async function collectPayment({ amount, method }) {
-  throw new ApiError(
-    "Le paiement en ligne n'est pas encore raccordé : le serveur doit exposer " +
-      'une route créant le paiement (PaymentIntent Stripe ou session de ' +
-      'règlement). En attendant, seul le paiement sur place permet de finaliser ' +
-      'une réservation.',
-    { status: 0, code: 'payment-not-wired', context: { amount, method } },
+let stripePromise = null
+
+export function getStripe() {
+  const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  if (!key) return null
+
+  stripePromise ??= loadStripe(key)
+  return stripePromise
+}
+
+export function isCardPaymentConfigured() {
+  return Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+}
+
+/**
+ * Demande au serveur de créer l'intention de paiement.
+ *
+ * Le montant n'est volontairement pas transmis : c'est au serveur de le
+ * recalculer depuis l'événement et le tarif. Un montant venu du client
+ * permettrait de payer un billet à 15 € pour 1 €.
+ */
+export async function createPaymentIntent({ eventId, ticketType, seats }) {
+  const payload = await api.postForm(PAYMENT_INTENT_URI, {
+    event_id: eventId,
+    ticket_type: ticketType,
+    seat: String(seats),
+  })
+
+  const clientSecret = payload?.client_secret ?? payload?.clientSecret
+  if (!clientSecret) {
+    throw new Error("Le serveur n'a pas renvoyé de client_secret.")
+  }
+
+  return { clientSecret, transactionId: payload?.transaction_id ?? null }
+}
+
+/**
+ * Traduit les erreurs Stripe en messages lisibles.
+ * Les libellés d'origine sont en anglais et souvent techniques.
+ */
+export function describeStripeError(error) {
+  if (!error) return null
+
+  const byCode = {
+    card_declined: 'Votre carte a été refusée. Essayez-en une autre.',
+    expired_card: 'Cette carte est expirée.',
+    incorrect_cvc: 'Le code de sécurité est incorrect.',
+    incorrect_number: 'Le numéro de carte est incorrect.',
+    insufficient_funds: 'Provision insuffisante sur cette carte.',
+    processing_error:
+      'Le traitement a échoué. Merci de réessayer dans un instant.',
+  }
+
+  return (
+    byCode[error.decline_code] ??
+    byCode[error.code] ??
+    error.message ??
+    "Le paiement n'a pas abouti."
   )
 }
