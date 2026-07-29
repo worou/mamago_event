@@ -305,6 +305,34 @@ export function adaptTicket(raw) {
   }
 }
 
+/**
+ * Réponse de l'enregistrement d'une réservation.
+ *
+ * Forme observée sur le serveur :
+ *   { ticket: { id, user_id, event_id, nb_seat, total, transaction_id,
+ *               payment_method, status, created_at, updated_at } }
+ *
+ * `ticket_type` est accepté en entrée mais n'est pas renvoyé : l'appelant
+ * conserve donc le libellé de son côté pour l'afficher.
+ */
+export function adaptBookedTicket(payload) {
+  const raw = payload?.ticket ?? payload
+  if (!raw) return null
+
+  return {
+    id: raw.id ?? null,
+    reference: raw.transaction_id ?? String(raw.id ?? ''),
+    eventId: toNumber(raw.event_id) || null,
+    quantity: toNumber(raw.nb_seat, 1),
+    totalPrice: toNumber(raw.total),
+    paymentMethod: raw.payment_method ?? null,
+    transactionId: raw.transaction_id ?? null,
+    status: raw.status ?? 'Booked',
+    createdAt: raw.created_at ?? null,
+    raw,
+  }
+}
+
 export function adaptTicketList(payload) {
   const list = Array.isArray(payload)
     ? payload

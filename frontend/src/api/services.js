@@ -2,6 +2,7 @@ import { api, setToken } from './client'
 import * as routes from './endpoints'
 import {
   adaptBannerList,
+  adaptBookedTicket,
   adaptCategoryList,
   adaptConfig,
   adaptCustomer,
@@ -91,25 +92,36 @@ export function logout() {
 // --- Billetterie ---
 
 /**
- * Crée la commande de billets.
+ * Enregistre la réservation, **une fois le paiement réussi**.
  *
- * Le contrat exact du corps de requête n'a pas encore pu être confirmé :
- * la route est authentifiée et renvoie 401 sans jeton, ce qui empêche de
- * lire ses erreurs de validation. Les champs ci-dessous suivent la
- * convention des autres routes de la plateforme et sont à ajuster dès
- * qu'un compte de test est disponible.
+ * `transactionId` est l'identifiant remis par la passerelle : c'est lui qui
+ * atteste du règlement, la route ne procédant à aucun encaissement.
+ *
+ * Contrat vérifié sur le serveur — corps en form-urlencoded, sinon 500 :
+ *
+ *   event_id, ticket_type, seat, total, payment_method, transaction_id
+ *
+ * Réponse : `{ ticket: { id, user_id, event_id, nb_seat, total,
+ * transaction_id, payment_method, status: "Booked", created_at } }`
  */
-export async function bookTicket({ eventId, tierId, quantity, paymentMethod }) {
-  return api.post(
-    routes.BOOK_TICKET_URI,
-    {
-      event_id: eventId,
-      event_price_id: tierId,
-      quantity,
-      payment_method: paymentMethod,
-    },
-    { auth: true },
-  )
+export async function bookTicket({
+  eventId,
+  ticketType,
+  seats,
+  total,
+  paymentMethod,
+  transactionId,
+}) {
+  const payload = await api.postForm(routes.BOOK_TICKET_URI, {
+    event_id: eventId,
+    ticket_type: ticketType,
+    seat: String(seats),
+    total,
+    payment_method: paymentMethod,
+    transaction_id: transactionId,
+  })
+
+  return adaptBookedTicket(payload)
 }
 
 export async function fetchMyTickets(signal) {

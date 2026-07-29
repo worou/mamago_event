@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { bookTicket, buildHostedPaymentUrl } from '../../api/services'
-import { useAuth } from '../../context/AuthContext'
+import { bookTicket } from '../../api/services'
+import { collectPayment } from '../../lib/payment'
 import { useBooking } from '../../context/BookingContext'
 import { useConfig } from '../../context/ConfigContext'
 import { formatMoney } from '../../lib/money'
@@ -13,40 +13,9 @@ import { TrustStrip } from '../../components/layout/Footer'
 import { Alert, Button, Field } from '../../components/ui'
 import { ArrowLeftIcon, LockIcon, ShieldIcon } from '../../components/Icons'
 
-/** Identifiant de commande, quel que soit le nom retenu par l'API. */
-function extractOrderId(payload) {
-  if (payload == null) return null
-  if (typeof payload === 'number' || typeof payload === 'string') return payload
-
-  return (
-    [
-      payload.order_id,
-      payload.id,
-      payload.ticket_id,
-      payload.data?.order_id,
-      payload.data?.id,
-      payload.order?.id,
-    ].find((value) => value != null) ?? null
-  )
-}
-
-/** Certaines passerelles renvoient directement l'URL de règlement. */
-function extractRedirectUrl(payload) {
-  if (!payload || typeof payload !== 'object') return null
-  return (
-    payload.redirect_url ??
-    payload.payment_url ??
-    payload.url ??
-    payload.data?.redirect_url ??
-    payload.data?.payment_url ??
-    null
-  )
-}
-
 export default function CheckoutPaymentPage() {
   const navigate = useNavigate()
   const { config } = useConfig()
-  const { user } = useAuth()
   const { event, lines, subtotal, totalQuantity, hasSelection, setQuantity, setOrder } =
     useBooking()
 
@@ -108,6 +77,14 @@ export default function CheckoutPaymentPage() {
     )
   }
 
+  /**
+   * Règlement puis enregistrement, dans cet ordre.
+   *
+   * `ticket/web/book` n'encaisse rien : elle consigne une réservation déjà
+   * payée, attestée par `transaction_id`. Le paiement doit donc aboutir
+   * avant l'appel, faute de quoi on enregistrerait des réservations non
+   * réglées.
+   */
   async function handlePay() {
     if (!activeMethod) return
 
@@ -115,55 +92,41 @@ export default function CheckoutPaymentPage() {
     setIsSubmitting(true)
 
     try {
-      // Une commande, une catégorie de billet, un paiement : la sélection est
-      // contrainte en amont pour qu'il ne puisse y avoir qu'une seule ligne.
+      // Une seule ligne : la sélection est contrainte à une catégorie.
       const [line] = lines
 
-      const response = await bookTicket({
+      const transactionId = isOffline
+        ? // Règlement sur place : rien n'est encaissé en ligne, la référence
+          // sert seulement à retrouver la réservation le jour J.
+          `SUR-PLACE-${Date.now().toString(36).toUpperCase()}`
+        : await collectPayment({ amount: total, method: activeMethod })
+
+      if (!transactionId) {
+        setIsSubmitting(false)
+        return
+      }
+
+      const ticket = await bookTicket({
         eventId: event.id,
-        tierId: line.tier.id,
-        quantity: line.quantity,
+        ticketType: line.tier.type,
+        seats: line.quantity,
+        total,
         paymentMethod: activeMethod,
+        transactionId,
       })
 
-      const orderId = extractOrderId(response)
-
       setOrder({
-        id: orderId,
+        id: ticket?.reference ?? transactionId,
+        ticketId: ticket?.id ?? null,
         method: activeMethod,
         amount: total,
         serviceFee,
-        response,
+        transactionId,
+        response: ticket?.raw ?? null,
         createdAt: new Date().toISOString(),
       })
 
-      if (isOffline) {
-        navigate('/reservation/confirmation')
-        return
-      }
-
-      // Le règlement par carte se fait sur la page hébergée par le backend :
-      // la clé secrète Stripe ne peut pas transiter par le navigateur.
-      const redirect =
-        extractRedirectUrl(response) ??
-        (orderId
-          ? buildHostedPaymentUrl({
-              orderId,
-              customerId: user?.id,
-              paymentMethod: activeMethod,
-              callback: `${window.location.origin}/reservation/confirmation`,
-            })
-          : null)
-
-      if (redirect) {
-        window.location.href = redirect
-        return
-      }
-
-      setError(
-        "La réservation a bien été enregistrée, mais l'API n'a pas retourné de lien de paiement. Contactez le support pour finaliser le règlement.",
-      )
-      navigate('/reservation/confirmation')
+      navigate('/reservation/confirmation?status=success')
     } catch (err) {
       setError(err.message)
     } finally {

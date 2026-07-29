@@ -58,14 +58,24 @@ function normalizeError(payload, status) {
   return new ApiError(message, { status, fieldErrors, code })
 }
 
-async function request(path, { method = 'GET', body, auth = false, signal } = {}) {
+async function request(
+  path,
+  { method = 'GET', body, auth = false, signal, form = false } = {},
+) {
   const headers = { Accept: 'application/json' }
 
   // La plateforme est multi-module ; certaines routes filtrent sur ces en-têtes.
   if (import.meta.env.VITE_MODULE_ID) headers.moduleId = import.meta.env.VITE_MODULE_ID
   if (import.meta.env.VITE_ZONE_ID) headers.zoneId = import.meta.env.VITE_ZONE_ID
 
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // `form: true` pour les routes qui n'acceptent pas le JSON — la
+  // réservation web répond 500 sur tout corps JSON, quel qu'en soit le
+  // contenu, et n'aboutit qu'en form-urlencoded.
+  if (body !== undefined) {
+    headers['Content-Type'] = form
+      ? 'application/x-www-form-urlencoded'
+      : 'application/json'
+  }
 
   if (auth) {
     const token = getToken()
@@ -77,7 +87,12 @@ async function request(path, { method = 'GET', body, auth = false, signal } = {}
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : form
+            ? new URLSearchParams(body).toString()
+            : JSON.stringify(body),
       signal,
     })
   } catch (err) {
@@ -111,5 +126,8 @@ async function request(path, { method = 'GET', body, auth = false, signal } = {}
 export const api = {
   get: (path, opts) => request(path, { ...opts, method: 'GET' }),
   post: (path, body, opts) => request(path, { ...opts, method: 'POST', body }),
+  /** POST en application/x-www-form-urlencoded. */
+  postForm: (path, body, opts) =>
+    request(path, { ...opts, method: 'POST', body, form: true }),
   baseUrl: BASE_URL,
 }

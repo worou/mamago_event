@@ -29,8 +29,27 @@ export const EVENTS_TOP_LIST_URI = '/api/v2/events/top'
  */
 export const EVENTS_NEAR_LIST_URI = '/api/v2/events/nearme'
 
-// --- Billetterie (v2, authentifié) ---
-export const BOOK_TICKET_URI = '/api/v2/customer/events/ticket/book'
+// --- Billetterie (v2) ---
+
+/**
+ * Enregistrement d'une réservation depuis le web, appelé **après** le
+ * succès du paiement : le corps porte l'identifiant de transaction.
+ *
+ * Deux particularités vérifiées sur le serveur :
+ *
+ * - le corps doit être envoyé en `application/x-www-form-urlencoded`.
+ *   En JSON, la route répond 500 quel que soit son contenu ;
+ * - elle n'exige aucun jeton, et attribue systématiquement `user_id: 1`.
+ *   Les réservations ne sont donc rattachées à aucun compte.
+ *
+ * Champs attendus : event_id, ticket_type, seat, total, payment_method,
+ * transaction_id.
+ */
+export const BOOK_TICKET_URI = '/api/v2/events/ticket/web/book'
+
+/** Variante authentifiée, conservée pour référence : renvoie 401 sans jeton. */
+export const BOOK_TICKET_CUSTOMER_URI = '/api/v2/customer/events/ticket/book'
+
 export const MY_TICKETS_URI = '/api/v2/customer/events/ticket/list'
 
 /**
