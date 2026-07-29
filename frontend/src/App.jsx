@@ -16,6 +16,7 @@ import RegisterPage from './pages/RegisterPage'
 import CheckoutInfoPage from './pages/checkout/CheckoutInfoPage'
 import CheckoutPaymentPage from './pages/checkout/CheckoutPaymentPage'
 import CheckoutConfirmationPage from './pages/checkout/CheckoutConfirmationPage'
+import CheckoutTicketPage from './pages/checkout/CheckoutTicketPage'
 import TicketPage from './pages/TicketPage'
 import MyReservationsPage from './pages/MyReservationsPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -73,6 +74,7 @@ export default function App() {
             path="/reservation/confirmation"
             element={<CheckoutConfirmationPage />}
           />
+          <Route path="/reservation/billet" element={<CheckoutTicketPage />} />
 
           <Route
             path="/mes-reservations"

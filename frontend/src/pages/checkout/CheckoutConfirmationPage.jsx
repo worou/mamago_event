@@ -203,18 +203,19 @@ export default function CheckoutConfirmationPage() {
         </div>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <Button size="lg" onClick={handleDownload} isLoading={isDownloading}>
-            <DownloadIcon className="h-5 w-5" />
-            Télécharger le billet (PDF)
+          {/* L'étape 4 lit le brouillon : y aller sans le purger. */}
+          <Button size="lg" onClick={() => navigate('/reservation/billet')}>
+            <TicketIcon className="h-5 w-5" />
+            Voir mon billet
           </Button>
           <CalendarButtons event={event} variant="button" />
           <ShareButton event={event} />
         </div>
 
-        <div className="mt-4 flex justify-center">
-          <Button variant="ghost" onClick={() => leave('/mes-reservations')}>
-            <TicketIcon className="h-5 w-5" />
-            Voir mes réservations
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
+          <Button variant="ghost" onClick={handleDownload} isLoading={isDownloading}>
+            <DownloadIcon className="h-5 w-5" />
+            Télécharger le billet (PDF)
           </Button>
         </div>
 

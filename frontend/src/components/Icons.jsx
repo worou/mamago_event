@@ -141,6 +141,12 @@ export const HeartIcon = ({ filled = false, ...p }) => (
   </svg>
 )
 
+export const HomeIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="m3 10.5 9-7 9 7V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" />
+  </svg>
+)
+
 export const ChevronDownIcon = (p) => (
   <svg {...base} {...p}>
     <path d="m6 9 6 6 6-6" />
