@@ -78,7 +78,7 @@ export default function CheckoutInfoPage() {
   const { isAuthenticated, user, signUp } = useAuth()
   const { event, lines, subtotal, hasSelection, setGuest } = useBooking()
 
-  const [mode, setMode] = useState('guest')
+  const [mode, setMode] = useState('register')
   const [error, setError] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
 
@@ -204,9 +204,8 @@ export default function CheckoutInfoPage() {
 
               <div className="mt-6 mb-8 flex gap-2 rounded-xl bg-slate-100 p-1">
                 {[
+                  { id: 'register', label: "S'inscrire" },
                   { id: 'guest', label: 'Sans compte' },
-                  { id: 'login', label: "J'ai un compte" },
-                  { id: 'register', label: 'Créer un compte' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
