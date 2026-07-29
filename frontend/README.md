@@ -227,57 +227,6 @@ cartes de test Stripe, sur la page de paiement hébergée par le backend :
 Date d'expiration future quelconque, CVC quelconque. Les transactions
 apparaissent ensuite dans le tableau de bord Stripe, vue « mode test ».
 
-### Bac à sable frontend
-
-Indépendamment de Stripe, un bac à sable permet de parcourir le tunnel
-sans compte, sans commande réelle et sans paiement — ce qui est autrement
-impossible, les routes de réservation renvoyant 401.
-
-```bash
-echo "VITE_SANDBOX=1" >> .env.local
-npm run dev
-```
-
-Une pastille « BAC À SABLE » reste affichée en bas à gauche tant qu'il est
-actif. Elle donne accès à deux réglages :
-
-- **l'issue simulée du paiement** (succès par défaut, échec au choix), le
-  chemin d'échec du tunnel étant sinon impossible à provoquer ;
-- **la réinitialisation** de la session et des commandes simulées.
-
-> Si une réservation échoue systématiquement, vérifier ce réglage : laissé
-> sur « Échec », il fait échouer tous les paiements simulés. La pastille
-> passe au rouge dans ce cas.
-
-**Les tarifs affichés sont ceux du catalogue réel**, y compris en bac à
-sable : celui-ci ne simule que ce qu'il ne peut pas faire autrement, à
-savoir la session, la réservation et le paiement.
-
-Si le catalogue contient des montants peu présentables, `VITE_SANDBOX_PRICE=99`
-force un tarif uniforme. La réécriture a lieu sur les réponses de l'API, donc
-en amont des adaptateurs : fiche, récapitulatif, total, billet et PDF restent
-cohérents entre eux. Hors bac à sable, aucun prix n'est jamais modifié —
-les altérer ferait diverger le montant affiché du montant réellement débité.
-
-Sont simulés : la session (`auth/login`, `customer/info`), la réservation
-(`ticket/book`), la liste des billets (`ticket/list`) et la redirection de
-paiement. Tout le reste — configuration, événements, catégories, bannières —
-part vers le vrai serveur, pour que l'interface reste confrontée aux vraies
-données.
-
-Le module est chargé par import dynamique sous une condition statiquement
-fausse en production : il est **absent du bundle**, pas seulement inactif.
-Vérifiable après `npm run build` :
-
-```bash
-grep -rl "sandbox-token" dist/assets/*.js   # aucun résultat attendu
-```
-
-> ⚠️ La fixture de `ticket/list` reproduit les **suppositions** de
-> `adaptTicket`, la vraie forme n'ayant pas pu être observée. Un parcours
-> réussi dans le bac à sable valide l'interface, pas l'intégration : il ne
-> referme pas le point ouvert ci-dessous.
-
 ## Point ouvert : `ticket/book`
 
 `POST /api/v2/customer/events/ticket/book` est authentifié et répond 401 sans
