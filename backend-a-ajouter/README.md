@@ -40,74 +40,19 @@ STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 ## 3. Le contrôleur
 
-`app/Http/Controllers/Api/V2/EventPaymentController.php` :
+Le fichier est fourni tel quel : **`EventPaymentController.php`**, à placer
+dans `app/Http/Controllers/Api/V2/`.
 
-```php
-<?php
+Un seul point à vérifier : le nom de la table des tarifs, supposé
+`event_prices` — c'est celle qui alimente le tableau `prices` de
+`/api/v2/events/list`. Ajustez-le si le vôtre diffère.
 
-namespace App\Http\Controllers\Api\V2;
+Deux garde-fous y sont intégrés :
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Stripe\StripeClient;
-
-class EventPaymentController extends Controller
-{
-    /**
-     * Crée un PaymentIntent et renvoie son client_secret.
-     *
-     * Le montant est recalculé côté serveur à partir de l'événement et du
-     * tarif : ne jamais faire confiance à un montant envoyé par le client,
-     * qui pourrait payer 1 € un billet à 15 €.
-     */
-    public function createIntent(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'event_id'    => 'required|integer|exists:events,id',
-            'ticket_type' => 'required|string',
-            'seat'        => 'required|integer|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 403);
-        }
-
-        $price = \App\Models\EventPrice::where('event_id', $request->event_id)
-            ->where('type', $request->ticket_type)
-            ->where('status', 'active')
-            ->first();
-
-        if (! $price) {
-            return response()->json([
-                'errors' => [['code' => 'ticket_type', 'message' => 'Tarif introuvable.']],
-            ], 404);
-        }
-
-        $amount = (int) round($price->price * $request->seat * 100); // en centimes
-
-        $stripe = new StripeClient(config('services.stripe.secret'));
-
-        $intent = $stripe->paymentIntents->create([
-            'amount'                    => $amount,
-            'currency'                  => 'eur',
-            'automatic_payment_methods' => ['enabled' => true],
-            'metadata'                  => [
-                'event_id'    => $request->event_id,
-                'ticket_type' => $request->ticket_type,
-                'seat'        => $request->seat,
-            ],
-        ]);
-
-        return response()->json([
-            'client_secret'  => $intent->client_secret,
-            'transaction_id' => $intent->id,
-            'amount'         => $amount / 100,
-            'currency'       => 'eur',
-        ]);
-    }
-}
-```
+- **le montant est relu en base**, jamais accepté depuis le client. Sinon
+  n'importe qui modifie la requête et paie 1 € un billet à 15 € ;
+- **le stock restant est contrôlé** avant de créer le paiement, ce qui
+  évite d'encaisser pour des places qui n'existent plus.
 
 ## 4. La route
 
@@ -134,12 +79,25 @@ Dans `config/services.php` :
 
 ```
 POST /api/v2/events/ticket/web/payment-intent
-  event_id=14&ticket_type=Standart&seat=2
+Content-Type: application/x-www-form-urlencoded
 
-→ 200 { "client_secret": "pi_..._secret_...",
-        "transaction_id": "pi_...",
-        "amount": 30, "currency": "eur" }
+  event_id=14&ticket_type=Standart&seat=1
 ```
+
+Réponse attendue — exemple réel, produit avec votre clé de test :
+
+```json
+{
+  "client_secret": "pi_3TyXT52R2lVtQ8we1MWg7ADU_secret_gSClZO4LLiRUDyiauWkL31fxJ",
+  "transaction_id": "pi_3TyXT52R2lVtQ8we1MWg7ADU",
+  "amount": 15,
+  "currency": "eur"
+}
+```
+
+Seul `client_secret` est indispensable : c'est lui que le navigateur passe
+à `stripe.confirmCardPayment()`. Les trois autres champs servent au
+contrôle et à l'affichage.
 
 Le frontend est déjà branché sur ce contrat : dès que la route répond, le
 paiement par carte fonctionne sans aucune modification côté client.
