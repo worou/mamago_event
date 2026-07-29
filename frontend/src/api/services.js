@@ -135,6 +135,20 @@ export async function bookTicket({
   return adaptBookedTicket(await api.postForm(routes.BOOK_TICKET_URI, body))
 }
 
+/**
+ * Demande au serveur de renvoyer le billet par email.
+ *
+ * Le frontend ne fait que déclencher : la composition du message, le QR
+ * code et l'envoi SMTP se font côté serveur.
+ */
+export async function resendTicketMail({ transactionId, email, name }) {
+  return api.postForm(routes.RESEND_TICKET_MAIL_URI, {
+    transaction_id: transactionId,
+    email,
+    name: name ?? '',
+  })
+}
+
 export async function fetchMyTickets(signal) {
   return adaptTicketList(
     await api.get(routes.MY_TICKETS_URI, { auth: true, signal }),

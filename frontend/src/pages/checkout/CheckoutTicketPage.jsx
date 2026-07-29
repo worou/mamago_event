@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useBooking } from '../../context/BookingContext'
 import Stepper from '../../components/checkout/Stepper'
 import TicketView from '../../components/ticket/TicketView'
+import ResendMailButton from '../../components/ticket/ResendMailButton'
 import { Alert, Button } from '../../components/ui'
 import { HomeIcon, TicketIcon } from '../../components/Icons'
 
@@ -40,6 +41,7 @@ export default function CheckoutTicketPage() {
 
   const buyerName =
     user?.name || [guest?.firstName, guest?.lastName].filter(Boolean).join(' ')
+  const buyerEmail = user?.email || guest?.email || ''
 
   const [firstLine] = lines
 
@@ -85,12 +87,31 @@ export default function CheckoutTicketPage() {
         event={event}
         buyerName={buyerName}
         actions={
-          <Alert tone="info">
+          <>
+            {buyerEmail && (
+              <div className="card p-5">
+                <p className="text-sm font-semibold text-slate-900">
+                  Billet non reçu ?
+                </p>
+                <p className="mt-1 mb-4 text-xs text-slate-500">
+                  Nous le renvoyons à {buyerEmail}. Pensez à vérifier vos
+                  courriers indésirables.
+                </p>
+                <ResendMailButton
+                  transactionId={order.transactionId ?? order.id}
+                  email={buyerEmail}
+                  name={buyerName}
+                />
+              </div>
+            )}
+
+            <Alert tone="info">
             Conservez votre numéro de commande{' '}
             <strong className="whitespace-nowrap">{ticket.reference}</strong> :
             il identifie votre billet.
-            {!user && ' Aucun compte n’a été créé pour cette réservation.'}
-          </Alert>
+              {!user && ' Aucun compte n’a été créé pour cette réservation.'}
+            </Alert>
+          </>
         }
       />
 

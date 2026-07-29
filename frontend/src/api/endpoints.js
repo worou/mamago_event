@@ -72,6 +72,17 @@ export const BOOK_TICKET_CUSTOMER_URI = '/api/v2/customer/events/ticket/book'
 export const MY_TICKETS_URI = '/api/v2/customer/events/ticket/list'
 
 /**
+ * Renvoi du billet par email, à ajouter côté serveur.
+ *
+ * Voir `backend-a-ajouter/ENVOI-EMAIL.md`. L'envoi appartient au backend :
+ * un navigateur ne peut pas dialoguer en SMTP. `/api/v1/config` indique
+ * déjà `is_mail_active: true`, la configuration mail existe donc.
+ *
+ * Contrat attendu : transaction_id, email, name → { message }
+ */
+export const RESEND_TICKET_MAIL_URI = '/api/v2/events/ticket/web/resend-mail'
+
+/**
  * Page de paiement hébergée par le backend. Les clés secrètes Stripe ne
  * transitant jamais par le navigateur, le tunnel redirige vers cette page
  * puis revient sur l'application.

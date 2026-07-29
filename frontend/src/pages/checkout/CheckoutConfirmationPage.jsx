@@ -11,6 +11,7 @@ import TicketStub from '../../components/ticket/TicketStub'
 import Confetti from '../../components/ticket/Confetti'
 import CalendarButtons from '../../components/ticket/CalendarButtons'
 import ShareButton from '../../components/ticket/ShareButton'
+import ResendMailButton from '../../components/ticket/ResendMailButton'
 import { Alert, Button } from '../../components/ui'
 import { CheckIcon, DownloadIcon, MailIcon, TicketIcon } from '../../components/Icons'
 
@@ -165,10 +166,20 @@ export default function CheckoutConfirmationPage() {
               <div className="mt-5 flex items-start gap-3 rounded-xl bg-brand-50 p-4">
                 <MailIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
                 <p className="text-xs text-slate-700">
-                  Un e-mail de confirmation vous a été envoyé à{' '}
+                  Votre billet vous est envoyé à{' '}
                   <span className="font-semibold text-brand-700">{buyerEmail}</span>.
+                  Pensez à vérifier vos courriers indésirables.
                 </p>
               </div>
+            )}
+
+            {buyerEmail && (
+              <ResendMailButton
+                className="mt-3"
+                transactionId={order.transactionId ?? order.id}
+                email={buyerEmail}
+                name={buyerName}
+              />
             )}
           </section>
         </div>
