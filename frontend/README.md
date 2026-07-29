@@ -227,25 +227,57 @@ cartes de test Stripe, sur la page de paiement hébergée par le backend :
 Date d'expiration future quelconque, CVC quelconque. Les transactions
 apparaissent ensuite dans le tableau de bord Stripe, vue « mode test ».
 
-## Point ouvert : `ticket/book`
+## Points ouverts, côté serveur
 
-`POST /api/v2/customer/events/ticket/book` est authentifié et répond 401 sans
-jeton, ce qui a empêché de lire ses erreurs de validation et donc de confirmer
-son contrat. Les champs envoyés (`event_id`, `event_price_id`, `quantity`,
-`payment_method`) suivent la convention des autres routes.
+Deux blocages relèvent du backend et non de ce dépôt.
 
-Avec un compte de test, la vérification prend une minute :
+### 1. Rien ne permet d'encaisser depuis le navigateur
 
-```bash
-TOKEN=$(curl -s -X POST https://frstore.mamagoapps.com/api/v1/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"login_type":"manual","field_type":"email","email_or_phone":"...","password":"..."}' \
-  | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+`POST /api/v2/events/ticket/web/book` consigne une réservation **déjà
+payée** : elle attend un `transaction_id` et n'encaisse rien. Le règlement
+doit donc aboutir avant l'appel.
 
-# Un corps vide révèle les champs attendus, sans créer de commande
-curl -s -X POST https://frstore.mamagoapps.com/api/v2/customer/events/ticket/book \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{}'
+Or aucun moyen d'y parvenir n'existe aujourd'hui :
+
+| Piste | État |
+| --- | --- |
+| Route créant un PaymentIntent | Aucune — toutes les variantes cherchées répondent 404 |
+| Clé publiable seule | Ne produit qu'un identifiant, **sans qu'aucun montant ne soit débité** |
+| Page hébergée `/payment-mobile` | Exige une commande de la table `orders`, que ce parcours ne crée pas |
+
+`lib/payment.js` échoue donc avec un message explicite plutôt que de
+simuler. Deux façons de débloquer :
+
+**Recommandé — une route côté backend.** Une quinzaine de lignes de
+Laravel suffisent :
+
 ```
+POST /api/v2/events/ticket/web/payment-intent
+  { amount: 15, currency: "eur" }
+→ { client_secret: "pi_..._secret_..." }
+```
+
+Le frontend ajoute alors Stripe Elements avec la clé publiable, appelle
+`stripe.confirmCardPayment(client_secret)`, et transmet l'identifiant du
+PaymentIntent comme `transaction_id`. Cela vaut pour tout événement et
+tout montant.
+
+**Repli sans backend — les Payment Links Stripe.** Créés dans le tableau
+de bord, ils fournissent une URL `https://buy.stripe.com/…` vers laquelle
+rediriger ; Stripe revient ensuite avec `?session_id=cs_…`, référence d'un
+paiement réel. Limite à connaître : **un lien par tarif et par montant**,
+maintenu à la main, et un nouvel événement impose de nouveaux liens.
+
+### 2. `user_id` est ignoré à l'enregistrement
+
+Vérifié en envoyant `user_id=42` : la valeur est écartée et `1` est
+enregistré. Aucune réservation n'est rattachée à un client, **y compris
+pour un acheteur connecté**.
+
+Conséquence : l'espace « Mes réservations » ne peut afficher les commandes
+de personne tant que ce n'est pas corrigé. Le frontend transmet malgré
+tout le champ, afin qu'il devienne effectif sans modification le jour où
+le serveur l'honorera.
 
 ### Conséquence : une seule catégorie de billet par commande
 

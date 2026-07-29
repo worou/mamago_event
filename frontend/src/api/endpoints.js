@@ -39,8 +39,14 @@ export const EVENTS_NEAR_LIST_URI = '/api/v2/events/nearme'
  *
  * - le corps doit être envoyé en `application/x-www-form-urlencoded`.
  *   En JSON, la route répond 500 quel que soit son contenu ;
- * - elle n'exige aucun jeton, et attribue systématiquement `user_id: 1`.
- *   Les réservations ne sont donc rattachées à aucun compte.
+ * - elle n'exige aucun jeton, ce qui rend possible la commande en invité ;
+ * - ⚠️ elle **ignore le champ `user_id`** : la valeur transmise est
+ *   écartée et `1` est enregistré à la place (vérifié en envoyant 42).
+ *   Aucune réservation n'est donc rattachée à un client, y compris pour
+ *   un acheteur connecté. Tant que ce n'est pas corrigé côté serveur,
+ *   « Mes réservations » ne peut afficher les commandes de personne.
+ *   Le champ continue d'être transmis : il deviendra effectif sans
+ *   modification du frontend le jour où le backend l'honorera.
  *
  * Champs attendus : event_id, ticket_type, seat, total, payment_method,
  * transaction_id.
