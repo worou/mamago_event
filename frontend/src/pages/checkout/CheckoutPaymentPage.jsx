@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { bookTicket } from '../../api/services'
 import { collectPayment } from '../../lib/payment'
+import { useAuth } from '../../context/AuthContext'
 import { useBooking } from '../../context/BookingContext'
 import { useConfig } from '../../context/ConfigContext'
 import { formatMoney } from '../../lib/money'
@@ -16,7 +17,8 @@ import { ArrowLeftIcon, LockIcon, ShieldIcon } from '../../components/Icons'
 export default function CheckoutPaymentPage() {
   const navigate = useNavigate()
   const { config } = useConfig()
-  const { event, lines, subtotal, totalQuantity, hasSelection, setQuantity, setOrder } =
+  const { isAuthenticated, user } = useAuth()
+  const { event, lines, subtotal, totalQuantity, hasSelection, guest, setQuantity, setOrder } =
     useBooking()
 
   const [selected, setSelected] = useState(null)
@@ -113,6 +115,11 @@ export default function CheckoutPaymentPage() {
         total,
         paymentMethod: activeMethod,
         transactionId,
+        // Compte si connecté, coordonnées saisies sinon.
+        customer:
+          isAuthenticated && user?.id
+            ? { userId: user.id }
+            : guest,
       })
 
       setOrder({

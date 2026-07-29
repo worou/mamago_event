@@ -32,13 +32,18 @@ export default function CheckoutConfirmationPage() {
    */
   const [snapshot] = useState(() => ({
     event: booking.event,
+    guest: booking.guest,
     lines: booking.lines,
     subtotal: booking.subtotal,
     totalQuantity: booking.totalQuantity,
     order: booking.order,
   }))
 
-  const { event, lines, subtotal, totalQuantity, order } = snapshot
+  const { event, lines, subtotal, totalQuantity, order, guest } = snapshot
+
+  // L'acheteur peut être connecté ou avoir commandé en invité.
+  const buyerName = user?.name ?? [guest?.firstName, guest?.lastName].filter(Boolean).join(' ')
+  const buyerEmail = user?.email ?? guest?.email ?? ''
 
   /**
    * Au retour de la page de paiement hébergée, le statut est transmis en
@@ -156,12 +161,12 @@ export default function CheckoutConfirmationPage() {
               </div>
             </dl>
 
-            {user?.email && (
+            {buyerEmail && (
               <div className="mt-5 flex items-start gap-3 rounded-xl bg-brand-50 p-4">
                 <MailIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
                 <p className="text-xs text-slate-700">
                   Un e-mail de confirmation vous a été envoyé à{' '}
-                  <span className="font-semibold text-brand-700">{user.email}</span>.
+                  <span className="font-semibold text-brand-700">{buyerEmail}</span>.
                 </p>
               </div>
             )}
@@ -190,7 +195,7 @@ export default function CheckoutConfirmationPage() {
             event={event}
             rows={[
               ['N° de commande', String(ticket.reference)],
-              ['Nom', user?.name ?? '—'],
+              ['Nom', buyerName || '—'],
               ['Date', event.dateLabel || '—'],
               ['Lieu', event.location || '—'],
             ]}

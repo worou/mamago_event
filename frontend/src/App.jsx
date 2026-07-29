@@ -63,24 +63,15 @@ export default function App() {
           <Route path="/connexion" element={<LoginPage />} />
           <Route path="/inscription" element={<RegisterPage />} />
 
-          {/* Tunnel de réservation : accessible à l'invité, qui crée son
-              compte à l'étape 1 puisque la réservation exige un jeton. */}
+          {/* Tunnel de réservation, accessible sans compte : la route
+              d'enregistrement n'exige pas de jeton. « Mes réservations »
+              reste réservé aux comptes, faute de quoi il n'y aurait rien
+              à y rattacher. */}
           <Route path="/reservation/informations" element={<CheckoutInfoPage />} />
-          <Route
-            path="/reservation/paiement"
-            element={
-              <RequireAuth>
-                <CheckoutPaymentPage />
-              </RequireAuth>
-            }
-          />
+          <Route path="/reservation/paiement" element={<CheckoutPaymentPage />} />
           <Route
             path="/reservation/confirmation"
-            element={
-              <RequireAuth>
-                <CheckoutConfirmationPage />
-              </RequireAuth>
-            }
+            element={<CheckoutConfirmationPage />}
           />
 
           <Route

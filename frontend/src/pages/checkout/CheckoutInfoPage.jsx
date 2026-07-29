@@ -5,6 +5,7 @@ import { useBooking } from '../../context/BookingContext'
 import { useConfig } from '../../context/ConfigContext'
 import { formatMoney } from '../../lib/money'
 import RegistrationForm from '../../components/auth/RegistrationForm'
+import GuestForm from '../../components/auth/GuestForm'
 import Stepper from '../../components/checkout/Stepper'
 import EventSummaryCard from '../../components/checkout/EventSummaryCard'
 import { TrustStrip } from '../../components/layout/Footer'
@@ -75,15 +76,21 @@ export default function CheckoutInfoPage() {
   const navigate = useNavigate()
   const { config } = useConfig()
   const { isAuthenticated, user, signUp } = useAuth()
-  const { event, lines, subtotal, hasSelection } = useBooking()
+  const { event, lines, subtotal, hasSelection, setGuest } = useBooking()
 
-  const [mode, setMode] = useState('register')
+  const [mode, setMode] = useState('guest')
   const [error, setError] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
 
   // Sans sélection en cours, l'étape n'a pas de sens.
   if (!event || !hasSelection) {
     return <Navigate to="/evenements" replace />
+  }
+
+  /** L'invité poursuit sans compte : ses coordonnées suivent la commande. */
+  function handleGuest(details) {
+    setGuest(details)
+    navigate('/reservation/paiement')
   }
 
   async function handleRegister(form) {
@@ -181,20 +188,25 @@ export default function CheckoutInfoPage() {
           ) : (
             <>
               <h1 className="text-2xl font-bold text-slate-900">
-                {mode === 'register'
-                  ? 'Inscription – Réservez votre billet'
-                  : 'Connexion – Réservez votre billet'}
+                {mode === 'guest'
+                  ? 'Vos coordonnées – Réservez votre billet'
+                  : mode === 'register'
+                    ? 'Inscription – Réservez votre billet'
+                    : 'Connexion – Réservez votre billet'}
               </h1>
               <p className="mt-2 text-sm text-slate-500">
-                {mode === 'register'
-                  ? 'Remplissez le formulaire ci-dessous pour continuer votre réservation.'
-                  : 'Connectez-vous pour poursuivre votre réservation.'}
+                {mode === 'guest'
+                  ? 'Trois informations suffisent : aucun compte n’est nécessaire.'
+                  : mode === 'register'
+                    ? 'Créez votre compte pour retrouver vos billets à tout moment.'
+                    : 'Connectez-vous pour poursuivre votre réservation.'}
               </p>
 
               <div className="mt-6 mb-8 flex gap-2 rounded-xl bg-slate-100 p-1">
                 {[
-                  { id: 'register', label: 'Nouveau client' },
-                  { id: 'login', label: "J'ai déjà un compte" },
+                  { id: 'guest', label: 'Sans compte' },
+                  { id: 'login', label: "J'ai un compte" },
+                  { id: 'register', label: 'Créer un compte' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -215,11 +227,16 @@ export default function CheckoutInfoPage() {
                 ))}
               </div>
 
-              {mode === 'register' ? (
+              {mode === 'guest' ? (
+                <GuestForm
+                  onSubmit={handleGuest}
+                  onBack={() => navigate(`/evenements/${event.id}`)}
+                />
+              ) : mode === 'register' ? (
                 <>
                   <Alert tone="info" className="mb-6">
-                    La réservation nécessite un compte : il vous permettra de
-                    retrouver vos billets et de suivre vos commandes.
+                    Un compte vous permet de retrouver vos billets et de suivre
+                    vos commandes. Ce n'est pas obligatoire pour réserver.
                   </Alert>
                   <RegistrationForm
                     onSubmit={handleRegister}

@@ -111,17 +111,28 @@ export async function bookTicket({
   total,
   paymentMethod,
   transactionId,
+  customer,
 }) {
-  const payload = await api.postForm(routes.BOOK_TICKET_URI, {
+  const body = {
     event_id: eventId,
     ticket_type: ticketType,
     seat: String(seats),
     total,
     payment_method: paymentMethod,
     transaction_id: transactionId,
-  })
+  }
 
-  return adaptBookedTicket(payload)
+  // Client identifié par son compte, ou par ses coordonnées s'il commande
+  // en invité. Les deux ne sont jamais transmis ensemble.
+  if (customer?.userId) {
+    body.user_id = customer.userId
+  } else if (customer) {
+    body.name = customer.lastName ?? ''
+    body.prenom = customer.firstName ?? ''
+    body.email = customer.email ?? ''
+  }
+
+  return adaptBookedTicket(await api.postForm(routes.BOOK_TICKET_URI, body))
 }
 
 export async function fetchMyTickets(signal) {

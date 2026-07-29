@@ -18,7 +18,7 @@ function readDraft() {
   }
 }
 
-const EMPTY = { event: null, quantities: {}, order: null }
+const EMPTY = { event: null, quantities: {}, order: null, guest: null }
 
 export function BookingProvider({ children }) {
   const [draft, setDraft] = useState(() => readDraft() ?? EMPTY)
@@ -60,6 +60,16 @@ export function BookingProvider({ children }) {
     setDraft((prev) => ({ ...prev, order }))
   }, [])
 
+  /**
+   * Coordonnées de l'acheteur non connecté.
+   *
+   * La réservation n'exigeant pas de jeton, l'invité commande sans compte :
+   * ses nom, prénom et email accompagnent alors la commande.
+   */
+  const setGuest = useCallback((guest) => {
+    setDraft((prev) => ({ ...prev, guest }))
+  }, [])
+
   const clearBooking = useCallback(() => {
     setDraft(EMPTY)
     try {
@@ -94,6 +104,7 @@ export function BookingProvider({ children }) {
       event: draft.event,
       quantities: draft.quantities,
       order: draft.order,
+      guest: draft.guest,
       lines,
       subtotal,
       totalQuantity,
@@ -101,9 +112,20 @@ export function BookingProvider({ children }) {
       startBooking,
       setQuantity,
       setOrder,
+      setGuest,
       clearBooking,
     }),
-    [draft, lines, subtotal, totalQuantity, startBooking, setQuantity, setOrder, clearBooking],
+    [
+      draft,
+      lines,
+      subtotal,
+      totalQuantity,
+      startBooking,
+      setQuantity,
+      setOrder,
+      setGuest,
+      clearBooking,
+    ],
   )
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>
