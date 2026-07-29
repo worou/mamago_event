@@ -44,9 +44,33 @@ fiche est résolue depuis la liste.
 **Pas de filtrage serveur.** `events/list` ignore `limit`, `offset` et
 `category_id`. Recherche et filtres sont appliqués côté client.
 
-**`events/nearme` renvoie 500**, avec ou sans coordonnées, avec ou sans
-en-têtes `zoneId`/`moduleId`. La section « près de chez vous » reste masquée
-tant que ce n'est pas corrigé côté serveur.
+**`events/nearme` ne filtre pas par distance.** La route ne renvoie plus
+d'erreur 500 depuis le 29/07/2026, mais retourne les mêmes événements pour
+des coordonnées en Normandie et à Bangui. La section « près de chez vous »
+reste donc non branchée : elle serait trompeuse.
+
+**Les médias sont mal formés dans l'API.** Trois défauts, tous compensés par
+`resolveMediaUrl` dans `adapters.js` :
+
+| Défaut | Exemple | Traitement |
+| --- | --- | --- |
+| Préfixe erroné | `/public/storage/category/…` → 404 | Réécrit en `/storage/app/public/…` |
+| URL absolue concaténée au préfixe | `…/public/storage/event/https://…webp` → 404 | Seule l'URL imbriquée est conservée |
+| Répertoire sans nom de fichier | `…/public/storage/event` → 403 | Ignoré, le repli visuel s'applique |
+
+**La position est dans `party_halls`, pas dans l'événement.** Ce champ est une
+**chaîne JSON** contenant `{title, address, image, latitude, longitude}`. Sur
+les entrées récentes, `latitude` et `longitude` au niveau de l'événement sont
+des chaînes vides : sans lire `party_halls`, la carte resterait masquée alors
+que la position est connue.
+
+**`participants` désigne les artistes, pas le public.** Chaque entrée porte
+`name`, `works` (rôle) et `bio`. Ils sont rendus dans une section « à
+l'affiche », et non comptés comme des inscrits.
+
+**Le tableau `organizer` mêle organisateurs et sponsors**, sans ordre garanti :
+sur l'événement 14, le sponsor arrive en premier. L'organisateur affiché est
+sélectionné sur son `role`, pas sur sa position.
 
 **`events/today` et `events/top` renvoient des listes vides.** Les sections
 correspondantes se masquent d'elles-mêmes plutôt que d'afficher un bloc creux.

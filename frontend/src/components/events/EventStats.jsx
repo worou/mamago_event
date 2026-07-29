@@ -10,23 +10,23 @@ import { CalendarIcon, MicIcon, TicketIcon, UsersIcon } from '../Icons'
 export default function EventStats({ event }) {
   const stats = []
 
-  if (event.participants > 0) {
+  // `participants` désigne la programmation, pas le public : les compter
+  // comme des inscrits donnerait un chiffre faux.
+  if (event.performers.length > 0) {
     stats.push({
-      icon: UsersIcon,
-      value: `${event.participants}`,
-      label: 'Participants inscrits',
+      icon: MicIcon,
+      value: `${event.performers.length}`,
+      label: event.performers.length > 1 ? 'Artistes' : 'Artiste',
     })
   }
 
-  if (event.organizers.length > 0) {
-    const speakers = event.organizers.filter((o) => o.role !== 'Sponsor')
-    if (speakers.length > 0) {
-      stats.push({
-        icon: MicIcon,
-        value: `${speakers.length}`,
-        label: speakers.length > 1 ? 'Intervenants' : 'Intervenant',
-      })
-    }
+  const organizers = event.organizers.filter((o) => o.role !== 'Sponsor')
+  if (organizers.length > 0) {
+    stats.push({
+      icon: UsersIcon,
+      value: `${organizers.length}`,
+      label: organizers.length > 1 ? 'Organisateurs' : 'Organisateur',
+    })
   }
 
   if (event.tiers.length > 0) {

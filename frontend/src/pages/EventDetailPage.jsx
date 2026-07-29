@@ -6,8 +6,10 @@ import { useBooking } from '../context/BookingContext'
 import { useConfig } from '../context/ConfigContext'
 import { useFavorites } from '../context/FavoritesContext'
 import { formatMoney, formatPrice } from '../lib/money'
+import { cleanDescription } from '../lib/text'
 import TicketTierSelector from '../components/events/TicketTierSelector'
 import EventStats from '../components/events/EventStats'
+import PerformerList from '../components/events/PerformerList'
 import VenueMap from '../components/events/VenueMap'
 import PaymentBrands from '../components/PaymentBrands'
 import { Alert, Avatar, Badge, Button, EventImage, Spinner, cx } from '../components/ui'
@@ -249,7 +251,9 @@ export default function EventDetailPage() {
             <section>
               <h2 className="text-xl font-bold text-slate-900">À propos de l'événement</h2>
               <p className="mt-4 leading-relaxed whitespace-pre-line text-slate-600">
-                {event.description || event.subtitle || 'Description à venir.'}
+                {cleanDescription(event.description) ||
+                cleanDescription(event.subtitle) ||
+                'Description à venir.'}
               </p>
             </section>
 
@@ -274,12 +278,19 @@ export default function EventDetailPage() {
                     </div>
                   </div>
                 )}
-                {event.location && (
+                {(event.location || event.venue?.title) && (
                   <div className="flex gap-3">
                     <PinIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
                     <div>
                       <dt className="text-sm font-semibold text-slate-900">Lieu</dt>
-                      <dd className="text-sm text-slate-600">{event.location}</dd>
+                      {event.venue?.title && (
+                        <dd className="text-sm font-medium text-slate-800">
+                          {event.venue.title}
+                        </dd>
+                      )}
+                      {event.location && (
+                        <dd className="text-sm text-slate-600">{event.location}</dd>
+                      )}
                     </div>
                   </div>
                 )}
@@ -294,12 +305,14 @@ export default function EventDetailPage() {
                     </div>
                   </div>
                 )}
-                {event.organizers[0] && (
+                {event.mainOrganizer && (
                   <div className="flex gap-3">
                     <UserIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
                     <div>
                       <dt className="text-sm font-semibold text-slate-900">Organisateur</dt>
-                      <dd className="text-sm text-slate-600">{event.organizers[0].name}</dd>
+                      <dd className="text-sm text-slate-600">
+                        {event.mainOrganizer.name}
+                      </dd>
                     </div>
                   </div>
                 )}
@@ -308,6 +321,8 @@ export default function EventDetailPage() {
           </div>
 
           <EventStats event={event} />
+
+          <PerformerList performers={event.performers} />
 
           {event.gallery.length > 0 && (
             <section className="mt-10">
@@ -331,7 +346,7 @@ export default function EventDetailPage() {
               <VenueMap
                 latitude={event.latitude}
                 longitude={event.longitude}
-                location={event.location}
+                location={event.venue?.title || event.location}
               />
             </section>
           )}

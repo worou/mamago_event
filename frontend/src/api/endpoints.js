@@ -21,9 +21,11 @@ export const TODAY_EVENTS_URI = '/api/v2/events/today'
 export const EVENTS_TOP_LIST_URI = '/api/v2/events/top'
 
 /**
- * Renvoie actuellement une erreur 500 côté serveur, avec ou sans coordonnées
- * et avec ou sans en-têtes zoneId/moduleId. La section « près de chez vous »
- * reste masquée tant que ce n'est pas corrigé côté backend.
+ * Ne renvoie plus d'erreur 500 depuis le 29/07/2026, mais ne filtre pas
+ * encore par distance : les mêmes événements sont retournés pour des
+ * coordonnées en Normandie et à Bangui. La section « près de chez vous »
+ * reste donc non branchée — elle serait trompeuse — jusqu'à ce que le tri
+ * géographique soit effectif côté serveur.
  */
 export const EVENTS_NEAR_LIST_URI = '/api/v2/events/nearme'
 

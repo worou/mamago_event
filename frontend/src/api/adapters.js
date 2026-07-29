@@ -12,19 +12,41 @@ function toNumber(value, fallback = 0) {
 }
 
 /**
- * Corrige le préfixe des URL de médias.
+ * Répare les URL de médias renvoyées par l'API.
  *
- * L'API v2 construit ses liens sous `/public/storage/…`, chemin qui renvoie
- * 404 sur le serveur ; les fichiers sont réellement servis depuis
- * `/storage/app/public/…` — c'est d'ailleurs le préfixe qu'utilise
- * `/api/v1/config` pour le logo. Vérifié : la même image de catégorie répond
- * 404 sur le premier chemin et 200 sur le second.
+ * Trois défauts constatés sur les données réelles :
  *
- * À supprimer le jour où le backend renverra directement le bon préfixe.
+ * 1. Le préfixe `/public/storage/…` renvoie 404 pour certains dossiers
+ *    (catégories notamment), alors que `/storage/app/public/…` répond 200.
+ *    C'est aussi le préfixe qu'emploie `/api/v1/config` pour le logo.
+ *
+ * 2. Certaines valeurs concatènent le préfixe et une URL absolue :
+ *      …/public/storage/event/https://frstore.mamagoapps.com/storage/…webp
+ *    Le résultat est en 404, tandis que l'URL imbriquée seule répond 200.
+ *    Cela concerne les organisateurs, les artistes et l'image de salle,
+ *    y compris quand l'URL imbriquée pointe vers un domaine externe.
+ *
+ * 3. D'autres ne contiennent que le répertoire, sans nom de fichier
+ *    (`…/public/storage/event`), et répondent 403.
+ *
+ * À alléger si le backend finit par renvoyer des URL correctes.
  */
 function resolveMediaUrl(url) {
   if (!url || typeof url !== 'string') return null
-  return url.replace('/public/storage/', '/storage/app/public/')
+
+  let value = url.trim()
+  if (!value) return null
+
+  // Défaut 2 : ne conserver que la dernière URL absolue de la chaîne.
+  const lastProtocol = Math.max(value.lastIndexOf('http://'), value.lastIndexOf('https://'))
+  if (lastProtocol > 0) value = value.slice(lastProtocol)
+
+  // Défaut 3 : sans extension sur le dernier segment, ce n'est pas un fichier.
+  const lastSegment = value.split('?')[0].split('/').pop() ?? ''
+  if (!/\.[a-z0-9]{2,5}$/i.test(lastSegment)) return null
+
+  // Défaut 1 : préfixe de stockage.
+  return value.replace('/public/storage/', '/storage/app/public/')
 }
 
 /**
@@ -47,6 +69,59 @@ export function adaptTicketTier(raw) {
     sold,
     remaining,
     isAvailable: raw.status === 'active' && remaining > 0,
+  }
+}
+
+/**
+ * Salle de l'événement.
+ *
+ * `party_halls` arrive sous forme de **chaîne JSON**, pas d'objet, et c'est
+ * là que se trouvent les vraies coordonnées : les champs `latitude` et
+ * `longitude` de l'événement sont des chaînes vides sur les entrées
+ * récentes. Sans cette lecture, la carte resterait masquée alors que la
+ * position est connue.
+ */
+export function adaptVenue(raw) {
+  if (!raw) return null
+
+  let data = raw
+  if (typeof raw === 'string') {
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      return null
+    }
+  }
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null
+
+  const latitude = Number(data.latitude)
+  const longitude = Number(data.longitude)
+
+  const venue = {
+    title: data.title ?? '',
+    address: data.address ?? '',
+    image: resolveMediaUrl(data.image),
+    latitude: Number.isFinite(latitude) && latitude !== 0 ? latitude : null,
+    longitude: Number.isFinite(longitude) && longitude !== 0 ? longitude : null,
+  }
+
+  return venue.title || venue.address || venue.latitude != null ? venue : null
+}
+
+/**
+ * Artistes à l'affiche.
+ *
+ * `participants` ne désigne pas le public mais la programmation : chaque
+ * entrée porte un nom, un rôle (`works`) et une biographie.
+ */
+export function adaptPerformer(raw) {
+  if (!raw?.name) return null
+  return {
+    name: raw.name,
+    role: raw.works ?? '',
+    bio: raw.bio ?? '',
+    image: resolveMediaUrl(raw.image),
   }
 }
 
@@ -80,6 +155,17 @@ export function adaptEvent(raw) {
     .map(resolveMediaUrl)
     .filter(Boolean)
 
+  const venue = adaptVenue(raw.party_halls)
+
+  // Le tableau `organizer` mêle organisateurs et sponsors, sans ordre
+  // garanti : sur l'événement 14, le sponsor arrive en premier.
+  const mainOrganizer =
+    organizers.find((o) => o.role === 'Organisateur') ?? organizers[0] ?? null
+
+  const performers = (Array.isArray(raw.participants) ? raw.participants : [])
+    .map(adaptPerformer)
+    .filter(Boolean)
+
   const totalRemaining = tiers.reduce((sum, t) => sum + t.remaining, 0)
 
   // `price` au niveau de l'événement n'est pas toujours renseigné (certains
@@ -98,9 +184,12 @@ export function adaptEvent(raw) {
     category: raw.category ?? null,
     image: resolveMediaUrl(raw.image),
     gallery,
-    location: raw.location ?? '',
-    latitude: raw.latitude ? Number(raw.latitude) : null,
-    longitude: raw.longitude ? Number(raw.longitude) : null,
+    location: raw.location || venue?.address || '',
+    // Les entrées récentes laissent latitude/longitude vides et ne
+    // renseignent la position que dans party_halls.
+    latitude: Number(raw.latitude) || venue?.latitude || null,
+    longitude: Number(raw.longitude) || venue?.longitude || null,
+    venue,
     // L'API renvoie une date déjà formatée en français ("30 avril 2026"),
     // pas une date ISO : on l'affiche telle quelle.
     dateLabel: raw.date ?? '',
@@ -110,8 +199,9 @@ export function adaptEvent(raw) {
     fromPrice,
     tiers,
     organizers,
+    mainOrganizer,
     isFeatured: Boolean(raw.is_featured),
-    participants: Array.isArray(raw.participants) ? raw.participants.length : 0,
+    performers,
     totalRemaining,
     isSoldOut: tiers.length > 0 && totalRemaining === 0,
   }
