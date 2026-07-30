@@ -56,9 +56,10 @@ export default function CheckoutTicketPage() {
     unitPrice: firstLine?.tier.price ?? 0,
     totalPrice: order.amount ?? subtotal,
     status: order.method === 'cash_on_delivery' ? 'pending' : 'paid',
-    // Le backend ne renvoie ni charge utile de QR ni PDF : les deux sont
-    // produits côté client à partir de la référence de commande.
+    // Le QR de chaque place vient du serveur (voir `seats`). Ce champ reste
+    // nul pour que `TicketStub` prenne celui de la place qu'il affiche.
     qrPayload: null,
+    // Aucune URL de PDF n'est fournie : le document est produit localement.
     pdfUrl: null,
   }
 

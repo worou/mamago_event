@@ -66,14 +66,23 @@ export default function CheckoutConfirmationPage() {
     navigate(to)
   }
 
+  const seats = order.seats ?? []
+
   const ticket = {
     reference: order.id ?? '—',
     eventId: event.id,
     eventTitle: event.title,
-    type: lines.map((l) => l.tier.type).join(', ') || 'Standard',
+    seats,
+    type: order.ticketType || lines.map((l) => l.tier.type).join(', ') || 'Standard',
     quantity: totalQuantity,
-    totalPrice: subtotal,
-    qrPayload: null,
+    totalPrice: order.amount ?? subtotal,
+    /*
+     * Charge utile émise par le serveur pour la première place.
+     * `buildQrPayload` la retrouverait via `seats`, mais la nommer ici rend
+     * explicite que le QR affiché n'est pas reconstitué localement : c'est
+     * celui que le contrôle à l'entrée attend.
+     */
+    qrPayload: seats[0]?.qrPayload ?? null,
   }
 
   async function handleDownload() {
@@ -205,13 +214,24 @@ export default function CheckoutConfirmationPage() {
             ticket={ticket}
             event={event}
             rows={[
-              ['N° de commande', String(ticket.reference)],
-              ['Nom', buyerName || '—'],
+              seats[0]?.number
+                ? ['N° de billet', seats[0].number]
+                : ['N° de commande', String(ticket.reference)],
+              ['Nom', seats[0]?.holderName || buyerName || '—'],
               ['Date', event.dateLabel || '—'],
-              ['Lieu', event.location || '—'],
+              ['Lieu', event.venue?.title || event.location || '—'],
             ]}
           />
         </div>
+
+        {seats.length > 1 && (
+          <p className="mt-4 text-center text-sm text-slate-500">
+            Cette réservation comporte{' '}
+            <strong className="text-slate-900">{seats.length} billets</strong>,
+            chacun avec son propre QR code. Ouvrez « Voir mon billet » pour
+            les retrouver tous.
+          </p>
+        )}
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           {/* L'étape 4 lit le brouillon : y aller sans le purger. */}
