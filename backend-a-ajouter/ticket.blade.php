@@ -29,7 +29,7 @@
                 {{ config('app.name', 'MamaGo') }}
               </p>
               <p style="margin:6px 0 0; font-size:14px; color:#cdf2de;">
-                Votre billet électronique
+                {{ count($seats) > 1 ? 'Vos billets électroniques' : 'Votre billet électronique' }}
               </p>
             </td>
           </tr>
@@ -41,49 +41,92 @@
                 Bonjour {{ $buyerName }},
               </p>
               <p style="margin:0; font-size:15px; line-height:1.6; color:#475569;">
-                Votre réservation est confirmée. Présentez le QR code ci-dessous
-                à l'entrée de l'événement — vous pouvez l'imprimer ou le montrer
-                depuis votre téléphone.
+                Votre réservation est confirmée.
+                @if(count($seats) > 1)
+                  Elle comporte <strong>{{ count($seats) }} billets</strong>, chacun
+                  avec son propre QR code. Présentez-les à l'entrée de l'événement.
+                @else
+                  Présentez le QR code ci-dessous à l'entrée de l'événement — vous
+                  pouvez l'imprimer ou le montrer depuis votre téléphone.
+                @endif
               </p>
             </td>
           </tr>
 
-          {{-- Billet --}}
+          {{-- Un bloc par place --}}
+          @foreach($seats as $index => $seat)
+            <tr>
+              <td style="padding:{{ $index === 0 ? '24px' : '0 24px 24px' }} 32px;">
+                @if(count($seats) > 1)
+                  <p style="margin:0 0 8px; font-size:11px; font-weight:bold; letter-spacing:0.5px; color:#64748b; text-transform:uppercase;">
+                    Place {{ $index + 1 }} sur {{ count($seats) }}
+                  </p>
+                @endif
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0; border-radius:12px;">
+                  <tr>
+                    <td align="center" style="padding:24px; border-right:1px dashed #e2e8f0;" width="45%">
+                      {{-- embedData intègre l'image au message : elle s'affiche
+                           même quand la messagerie bloque les images distantes. --}}
+                      <img src="{{ $message->embedData($seat['qr'], 'qr-'.$seat['number'].'.png', 'image/png') }}"
+                           alt="QR code du billet {{ $seat['number'] }}"
+                           width="170" height="170"
+                           style="display:block; width:170px; height:170px;">
+                      <p style="margin:12px 0 0; font-size:11px; color:#94a3b8;">
+                        À présenter à l'entrée
+                      </p>
+                    </td>
+                    <td style="padding:24px;" valign="top">
+                      <p style="margin:0; font-size:11px; color:#94a3b8;">N° de billet</p>
+                      <p style="margin:2px 0 14px; font-size:15px; font-weight:bold; color:#0a7d4a;">
+                        {{ $seat['number'] }}
+                      </p>
+
+                      @if($seat['name'])
+                        <p style="margin:0; font-size:11px; color:#94a3b8;">Nom</p>
+                        <p style="margin:2px 0 14px; font-size:14px; font-weight:bold;">
+                          {{ $seat['name'] }}
+                        </p>
+                      @endif
+
+                      <p style="margin:0; font-size:11px; color:#94a3b8;">Type de billet</p>
+                      <p style="margin:2px 0 14px; font-size:14px; font-weight:bold;">
+                        {{ $seat['type'] ?: 'Standard' }}
+                      </p>
+
+                      @if($seat['price'])
+                        <p style="margin:0; font-size:11px; color:#94a3b8;">Prix</p>
+                        <p style="margin:2px 0 0; font-size:14px; font-weight:bold;">
+                          {{ number_format((float) $seat['price'], 2, ',', ' ') }} €
+                        </p>
+                      @endif
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          @endforeach
+
+          {{-- Récapitulatif de la commande --}}
           <tr>
-            <td style="padding:24px 32px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0; border-radius:12px;">
+            <td style="padding:0 32px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border-radius:12px;">
                 <tr>
-                  <td align="center" style="padding:24px; border-right:1px dashed #e2e8f0;" width="45%">
-                    {{-- embedData intègre l'image au message : elle s'affiche
-                         même quand la messagerie bloque les images distantes. --}}
-                    <img src="{{ $message->embedData($qrData, 'qr-code.png', 'image/png') }}"
-                         alt="QR code du billet"
-                         width="180" height="180"
-                         style="display:block; width:180px; height:180px;">
-                    <p style="margin:12px 0 0; font-size:11px; color:#94a3b8;">
-                      À présenter à l'entrée
-                    </p>
-                  </td>
-                  <td style="padding:24px;" valign="top">
-                    <p style="margin:0; font-size:11px; color:#94a3b8;">N° de commande</p>
-                    <p style="margin:2px 0 14px; font-size:14px; font-weight:bold; color:#0a7d4a; word-break:break-all;">
-                      {{ $ticket->transaction_id ?? $ticket->id }}
-                    </p>
-
-                    <p style="margin:0; font-size:11px; color:#94a3b8;">Type de billet</p>
-                    <p style="margin:2px 0 14px; font-size:14px; font-weight:bold;">
-                      {{ $ticket->ticket_type ?? 'Standard' }}
-                    </p>
-
-                    <p style="margin:0; font-size:11px; color:#94a3b8;">Quantité</p>
-                    <p style="margin:2px 0 14px; font-size:14px; font-weight:bold;">
-                      {{ $ticket->nb_seat }}
-                    </p>
-
-                    <p style="margin:0; font-size:11px; color:#94a3b8;">Total payé</p>
-                    <p style="margin:2px 0 0; font-size:14px; font-weight:bold;">
-                      {{ number_format((float) $ticket->total, 2, ',', ' ') }} €
-                    </p>
+                  <td style="padding:16px 20px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size:13px; color:#64748b;">N° de commande</td>
+                        <td align="right" style="font-size:13px; font-weight:bold; word-break:break-all;">
+                          {{ $ticket->transaction_id ?? $ticket->id }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-top:8px; font-size:13px; color:#64748b;">Total payé</td>
+                        <td align="right" style="padding-top:8px; font-size:15px; font-weight:bold; color:#0a7d4a;">
+                          {{ number_format((float) $ticket->total, 2, ',', ' ') }} €
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
@@ -100,11 +143,11 @@
                       {{ $event->title }}
                     </p>
                     <p style="margin:0 0 6px; font-size:14px; color:#334155;">
-                      📅 {{ $event->date }}@if($event->time) — {{ $event->time }}@endif
+                      {{ $event->date }}@if($event->time) — {{ $event->time }}@endif
                     </p>
                     @if($event->location)
                       <p style="margin:0; font-size:14px; color:#334155;">
-                        📍 {{ $event->location }}
+                        {{ $event->location }}
                       </p>
                     @endif
                   </td>
@@ -117,9 +160,10 @@
           <tr>
             <td style="padding:0 32px 32px;">
               <p style="margin:0; font-size:12px; line-height:1.6; color:#94a3b8;">
-                Ce billet est unique et non transférable. Toute reproduction peut
-                être refusée à l'entrée. Conservez ce message : il vous permet de
-                retrouver votre réservation à tout moment.
+                {{ count($seats) > 1 ? 'Ces billets sont uniques et non transférables.' : 'Ce billet est unique et non transférable.' }}
+                Toute reproduction peut être refusée à l'entrée. Conservez ce
+                message : il vous permet de retrouver votre réservation à tout
+                moment.
               </p>
             </td>
           </tr>
