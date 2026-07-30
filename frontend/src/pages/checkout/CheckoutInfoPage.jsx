@@ -244,6 +244,21 @@ export default function CheckoutInfoPage() {
                     serverError={error}
                     serverFieldErrors={fieldErrors}
                   />
+
+                  <p className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
+                    Vous avez déjà un compte ?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login')
+                        setError(null)
+                        setFieldErrors({})
+                      }}
+                      className="font-semibold text-brand-700 hover:underline"
+                    >
+                      Se connecter
+                    </button>
+                  </p>
                 </>
               ) : (
                 <>
@@ -252,6 +267,28 @@ export default function CheckoutInfoPage() {
                     onDone={() => navigate('/reservation/paiement')}
                     onBack={() => navigate(`/evenements/${event.id}`)}
                   />
+
+                  <p className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
+                    Pas encore de compte ?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('register')
+                        setError(null)
+                      }}
+                      className="font-semibold text-brand-700 hover:underline"
+                    >
+                      S'inscrire
+                    </button>
+                    {' · '}
+                    <button
+                      type="button"
+                      onClick={() => setMode('guest')}
+                      className="font-semibold text-brand-700 hover:underline"
+                    >
+                      Commander sans compte
+                    </button>
+                  </p>
                 </>
               )}
             </>
