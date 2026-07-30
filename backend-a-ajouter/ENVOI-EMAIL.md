@@ -113,7 +113,25 @@ Si ce message arrive, le SMTP fonctionne et le billet partira aussi.
 
 ## Ce que fait le frontend en attendant
 
-L'écran de confirmation et l'étape 4 proposent un bouton **« Renvoyer par
-email »**. Tant que la route de renvoi n'existe pas, il affiche un message
-explicite au lieu d'échouer en silence — et l'acheteur garde de toute
-façon le téléchargement PDF immédiat.
+Tant que rien n'est branché, l'application **n'annonce aucun envoi**. Elle
+affichait auparavant « Votre billet vous est envoyé à … », ce qui était
+faux et poussait l'acheteur à attendre au lieu de télécharger son billet.
+
+L'étape 4 avertit désormais : *« Téléchargez votre billet maintenant. Il ne
+vous sera pas envoyé par email, et cette page n'est pas accessible après
+fermeture de l'onglet — le PDF est votre seul exemplaire. »*
+
+C'est exact aujourd'hui : sans envoi et avec `user_id` ignoré, l'acheteur
+n'a aucun moyen de retrouver sa réservation ensuite.
+
+### Une fois le Mailable branché
+
+Ajoutez dans `frontend/.env.local` :
+
+```
+VITE_TICKET_EMAIL_ENABLED=1
+```
+
+puis reconstruisez. L'avertissement disparaît, l'annonce d'envoi et le
+bouton « Renvoyer par email » réapparaissent. Aucune autre modification
+n'est nécessaire.

@@ -25,6 +25,23 @@ export function isCardPaymentConfigured() {
 }
 
 /**
+ * L'envoi du billet par email est-il opérationnel côté serveur ?
+ *
+ * Faux par défaut : à la date de cette écriture, `ticket/web/book`
+ * n'envoie rien et aucune route d'envoi n'existe (404 sur toutes celles
+ * cherchées). Annoncer un email qui n'arrive pas laisse l'acheteur
+ * attendre au lieu de télécharger son billet — le seul exemplaire qu'il
+ * possède, puisque `user_id` est ignoré et qu'il ne pourra pas le
+ * retrouver ensuite.
+ *
+ * Passer `VITE_TICKET_EMAIL_ENABLED=1` une fois le Mailable branché (voir
+ * `backend-a-ajouter/ENVOI-EMAIL.md`).
+ */
+export function isTicketEmailEnabled() {
+  return import.meta.env.VITE_TICKET_EMAIL_ENABLED === '1'
+}
+
+/**
  * Mode Stripe déduit du préfixe de la clé publiable.
  *
  * Aucun réglage séparé n'est nécessaire — et donc aucun risque qu'il

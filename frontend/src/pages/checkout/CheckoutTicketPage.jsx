@@ -5,6 +5,7 @@ import { useBooking } from '../../context/BookingContext'
 import Stepper from '../../components/checkout/Stepper'
 import TicketView from '../../components/ticket/TicketView'
 import ResendMailButton from '../../components/ticket/ResendMailButton'
+import { isTicketEmailEnabled } from '../../lib/payment'
 import { Alert, Button } from '../../components/ui'
 import { HomeIcon, TicketIcon } from '../../components/Icons'
 
@@ -85,13 +86,27 @@ export default function CheckoutTicketPage() {
         </Button>
       </div>
 
+      {/*
+        Sans envoi par email, et `user_id` étant ignoré côté serveur,
+        l'acheteur ne peut pas retrouver son billet après avoir fermé
+        l'onglet : le PDF est sa seule copie. L'avertissement disparaît
+        dès que VITE_TICKET_EMAIL_ENABLED est activé.
+      */}
+      {!isTicketEmailEnabled() && (
+        <Alert tone="warning" className="mb-6">
+          <strong>Téléchargez votre billet maintenant.</strong> Il ne vous
+          sera pas envoyé par email, et cette page n'est pas accessible après
+          fermeture de l'onglet — le PDF est votre seul exemplaire.
+        </Alert>
+      )}
+
       <TicketView
         ticket={ticket}
         event={event}
         buyerName={buyerName}
         actions={
           <>
-            {buyerEmail && (
+            {buyerEmail && isTicketEmailEnabled() && (
               <div className="card p-5">
                 <p className="text-sm font-semibold text-slate-900">
                   Billet non reçu ?

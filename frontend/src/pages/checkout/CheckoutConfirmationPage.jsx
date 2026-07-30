@@ -5,6 +5,7 @@ import { useBooking } from '../../context/BookingContext'
 import { useConfig } from '../../context/ConfigContext'
 import { formatMoney } from '../../lib/money'
 import { downloadTicketPdf } from '../../lib/ticket'
+import { isTicketEmailEnabled } from '../../lib/payment'
 import Stepper from '../../components/checkout/Stepper'
 import EventSummaryCard from '../../components/checkout/EventSummaryCard'
 import TicketStub from '../../components/ticket/TicketStub'
@@ -171,24 +172,24 @@ export default function CheckoutConfirmationPage() {
               </div>
             </dl>
 
-            {buyerEmail && (
-              <div className="mt-5 flex items-start gap-3 rounded-xl bg-brand-50 p-4">
-                <MailIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-                <p className="text-xs text-slate-700">
-                  Votre billet vous est envoyé à{' '}
-                  <span className="font-semibold text-brand-700">{buyerEmail}</span>.
-                  Pensez à vérifier vos courriers indésirables.
-                </p>
-              </div>
-            )}
+            {buyerEmail && isTicketEmailEnabled() && (
+              <>
+                <div className="mt-5 flex items-start gap-3 rounded-xl bg-brand-50 p-4">
+                  <MailIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                  <p className="text-xs text-slate-700">
+                    Votre billet vous est envoyé à{' '}
+                    <span className="font-semibold text-brand-700">{buyerEmail}</span>.
+                    Pensez à vérifier vos courriers indésirables.
+                  </p>
+                </div>
 
-            {buyerEmail && (
-              <ResendMailButton
-                className="mt-3"
-                transactionId={order.transactionId ?? order.id}
-                email={buyerEmail}
-                name={buyerName}
-              />
+                <ResendMailButton
+                  className="mt-3"
+                  transactionId={order.transactionId ?? order.id}
+                  email={buyerEmail}
+                  name={buyerName}
+                />
+              </>
             )}
           </section>
         </div>
