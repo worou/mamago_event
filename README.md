@@ -52,6 +52,14 @@ frontend/
 images/          Maquettes de référence
 ```
 
+## Mise en production
+
+La procédure complète est dans **[MISE-EN-LIGNE.md](MISE-EN-LIGNE.md)**.
+
+Un préalable bloquant : le compte Stripe n'est pas activé — dossier non
+soumis, encaissements et virements désactivés. Aucun paiement réel ne peut
+aboutir avant cette activation, quelles que soient les clés employées.
+
 ## Points ouverts
 
 Le contrat de `POST /api/v2/customer/events/ticket/book` n'a pas pu être
