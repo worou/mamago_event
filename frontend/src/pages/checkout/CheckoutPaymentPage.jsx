@@ -110,8 +110,6 @@ function CheckoutPaymentInner() {
       // Une seule ligne : la sélection est contrainte à une catégorie.
       const [line] = lines
 
-      const [firstLine] = lines
-
       let transactionId
       if (isOffline) {
         // Règlement sur place : rien n'est encaissé en ligne, la référence
@@ -122,8 +120,8 @@ function CheckoutPaymentInner() {
         // l'événement et le tarif.
         const { clientSecret } = await createPaymentIntent({
           eventId: event.id,
-          ticketType: firstLine.tier.type,
-          seats: firstLine.quantity,
+          ticketType: line.tier.type,
+          seats: line.quantity,
         })
 
         const result = await stripe.confirmCardPayment(clientSecret, {
@@ -168,6 +166,9 @@ function CheckoutPaymentInner() {
       setOrder({
         id: ticket?.reference ?? transactionId,
         ticketId: ticket?.id ?? null,
+        // Une place par billet, chacune avec son numéro et son QR code.
+        seats: ticket?.seats ?? [],
+        ticketType: ticket?.type ?? null,
         method: activeMethod,
         amount: total,
         serviceFee,

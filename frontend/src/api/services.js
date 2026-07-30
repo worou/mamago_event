@@ -67,9 +67,37 @@ export async function login({ identifier, password }) {
   return { token, isPhoneVerified: payload?.is_phone_verified ?? true, raw: payload }
 }
 
-export async function register({ name, phone, email, password }) {
-  const body = { name: name.trim(), phone: phone.trim(), password }
+/**
+ * Création de compte.
+ *
+ * Le modèle attend `f_name`, `l_name`, `phone`, `email`, `password`, plus
+ * `ref_code` et `cm_firebase_token` facultatifs. La validation, elle,
+ * n'exige que `name`, `phone` et `password` — d'au moins 8 caractères
+ * (vérifié sur le serveur). On transmet donc les deux formes : `name`
+ * pour satisfaire la validation, `f_name`/`l_name` pour renseigner
+ * correctement l'enregistrement.
+ *
+ * `cm_firebase_token` sert aux notifications push mobiles : sans objet ici.
+ */
+export async function register({
+  name,
+  firstName,
+  lastName,
+  phone,
+  email,
+  password,
+  referralCode,
+}) {
+  const body = {
+    name: name.trim(),
+    f_name: (firstName ?? '').trim(),
+    l_name: (lastName ?? '').trim(),
+    phone: phone.trim(),
+    password,
+  }
+
   if (email?.trim()) body.email = email.trim()
+  if (referralCode?.trim()) body.ref_code = referralCode.trim()
 
   const payload = await api.post(routes.SIGNUP_URI, body)
 

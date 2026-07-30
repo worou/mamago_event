@@ -7,7 +7,14 @@ import { formatMoney } from './money'
  * de façon unique et permet son contrôle à l'entrée.
  */
 export function buildQrPayload(ticket) {
+  // Le serveur émet une charge utile par place, de la forme
+  // MAMAGO://ticket/TCK-100012-2026-0//Cedric_NG//standard : c'est elle
+  // que le contrôle à l'entrée attend, elle a donc la priorité.
   if (ticket.qrPayload) return String(ticket.qrPayload)
+  if (ticket.seats?.[0]?.qrPayload) return String(ticket.seats[0].qrPayload)
+
+  // Repli, tant que le serveur ne fournit rien : la référence identifie
+  // la réservation de façon unique.
   return JSON.stringify({
     ref: ticket.reference,
     event: ticket.eventId,
@@ -95,13 +102,20 @@ export async function downloadTicketPdf({ ticket, event, config }) {
     y += 9
   }
 
-  // QR code, aligné en haut à droite du bloc d'informations
+  // QR code, aligné en haut à droite du bloc d'informations.
+  // Le serveur émettant une charge utile par place, la première figure
+  // ici ; les suivantes reçoivent leur propre page (voir plus bas).
   try {
     const qr = await generateQrDataUrl(buildQrPayload(ticket))
     doc.addImage(qr, 'PNG', pageWidth - margin - 55, 55, 55, 55)
     doc.setFontSize(9)
     doc.setTextColor(...muted)
-    doc.text("À présenter à l'entrée", pageWidth - margin - 55, 116)
+    const firstNumber = ticket.seats?.[0]?.number
+    doc.text(
+      firstNumber ? `N° ${firstNumber} — à présenter à l'entrée` : "À présenter à l'entrée",
+      pageWidth - margin - 55,
+      116,
+    )
   } catch {
     // Un QR manquant ne doit pas empêcher le téléchargement du billet.
   }
@@ -120,6 +134,62 @@ export async function downloadTicketPdf({ ticket, event, config }) {
     pageWidth - margin * 2,
   )
   doc.text(notice, margin, y)
+
+  /*
+   * Places suivantes : une page chacune.
+   *
+   * Chaque place a son propre QR code et doit pouvoir être présentée
+   * séparément — deux personnes n'entrent pas avec le même billet.
+   */
+  const extraSeats = (ticket.seats ?? []).slice(1)
+  for (const [index, seat] of extraSeats.entries()) {
+    doc.addPage()
+
+    doc.setFillColor(...brand)
+    doc.rect(0, 0, pageWidth, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(22)
+    doc.text(config?.businessName ?? 'MamaGo', margin, 20)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(11)
+    doc.text(`Place ${index + 2} sur ${ticket.seats.length}`, margin, 30)
+
+    let y2 = 60
+    doc.setTextColor(...ink)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.text(doc.splitTextToSize(event?.title ?? ticket.eventTitle ?? 'Événement', pageWidth - margin * 2 - 60), margin, y2)
+    y2 += 14
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(11)
+    for (const [label, value] of [
+      ['N° de billet', seat.number || '—'],
+      ['Nom', seat.holderName || '—'],
+      ['Type de billet', seat.type || '—'],
+      ['Date', event?.dateLabel || '—'],
+      ['Lieu', event?.location || '—'],
+    ]) {
+      doc.setTextColor(...muted)
+      doc.text(label, margin, y2)
+      doc.setTextColor(...ink)
+      doc.setFont('helvetica', 'bold')
+      doc.text(doc.splitTextToSize(String(value), 90), margin + 45, y2)
+      doc.setFont('helvetica', 'normal')
+      y2 += 9
+    }
+
+    try {
+      const seatQr = await generateQrDataUrl(seat.qrPayload ?? seat.number ?? '')
+      doc.addImage(seatQr, 'PNG', pageWidth - margin - 55, 55, 55, 55)
+      doc.setFontSize(9)
+      doc.setTextColor(...muted)
+      doc.text(`N° ${seat.number} — à présenter à l'entrée`, pageWidth - margin - 55, 116)
+    } catch {
+      // Idem : un QR manquant ne bloque pas le document.
+    }
+  }
 
   const safeRef = String(ticket.reference || 'billet').replace(/[^a-zA-Z0-9_-]/g, '')
   doc.save(`billet-${safeRef}.pdf`)

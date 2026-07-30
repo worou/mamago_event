@@ -49,7 +49,9 @@ export default function CheckoutTicketPage() {
     reference: order.id ?? '—',
     eventId: event.id,
     eventTitle: event.title,
-    type: lines.map((l) => l.tier.type).join(', ') || 'Standard',
+    // Places émises par le serveur : chacune porte son QR code.
+    seats: order.seats ?? [],
+    type: order.ticketType || lines.map((l) => l.tier.type).join(', ') || 'Standard',
     quantity: totalQuantity,
     unitPrice: firstLine?.tier.price ?? 0,
     totalPrice: order.amount ?? subtotal,

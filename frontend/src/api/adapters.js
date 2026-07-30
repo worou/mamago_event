@@ -285,21 +285,26 @@ export function adaptTicket(raw) {
 
   const event = raw.event ? adaptEvent(raw.event) : null
 
+  const seats = (Array.isArray(raw.seats) ? raw.seats : [])
+    .map(adaptSeat)
+    .filter(Boolean)
+
   return {
     id: raw.id ?? raw.ticket_id ?? null,
     reference: raw.order_id ?? raw.reference ?? raw.transaction_id ?? raw.id ?? '',
     eventId: raw.event_id ?? event?.id ?? null,
     event,
     eventTitle: raw.event_title ?? event?.title ?? 'Événement',
-    type: raw.type ?? raw.ticket_type ?? 'Standard',
+    type: raw.type ?? raw.ticket_type ?? seats[0]?.type ?? 'Standard',
     quantity: toNumber(raw.quantity ?? raw.nb_ticket, 1),
     unitPrice: toNumber(raw.price ?? raw.unit_price),
     totalPrice: toNumber(raw.total_price ?? raw.amount ?? raw.total),
     status: raw.status ?? raw.payment_status ?? 'pending',
     createdAt: raw.created_at ?? null,
-    // Charge utile du QR : si le backend n'en fournit pas, on encode la
-    // référence de commande, qui identifie le billet de façon unique.
-    qrPayload: raw.qr_code ?? raw.qr ?? raw.ticket_code ?? null,
+    seats,
+    // Charge utile du QR fournie par le serveur, au niveau du billet ou de
+    // sa première place. À défaut, `buildQrPayload` encode la référence.
+    qrPayload: raw.qr_code ?? raw.qr ?? raw.ticket_code ?? seats[0]?.qrPayload ?? null,
     pdfUrl: raw.pdf_url ?? raw.ticket_pdf ?? null,
     raw,
   }
@@ -315,20 +320,51 @@ export function adaptTicket(raw) {
  * `ticket_type` est accepté en entrée mais n'est pas renvoyé : l'appelant
  * conserve donc le libellé de son côté pour l'afficher.
  */
+/**
+ * Une place réservée.
+ *
+ * Le serveur émet **une entrée par place**, chacune avec son propre
+ * `ticket_number` et son `qr_code`. Deux billets donnent donc deux QR
+ * distincts : c'est cette charge utile qu'il faut encoder, et non une
+ * référence reconstituée côté client.
+ */
+export function adaptSeat(raw) {
+  if (!raw) return null
+
+  return {
+    id: raw.id ?? null,
+    ticketId: raw.ticket_id ?? null,
+    number: raw.ticket_number ?? '',
+    holderName: raw.name ?? '',
+    type: raw.ticket_type ?? 'Standard',
+    seat: raw.seat ?? '',
+    price: toNumber(raw.price),
+    status: raw.status ?? 'Booked',
+    qrPayload: raw.qr_code ?? null,
+  }
+}
+
 export function adaptBookedTicket(payload) {
   const raw = payload?.ticket ?? payload
   if (!raw) return null
+
+  const seats = (Array.isArray(raw.seats) ? raw.seats : [])
+    .map(adaptSeat)
+    .filter(Boolean)
 
   return {
     id: raw.id ?? null,
     reference: raw.transaction_id ?? String(raw.id ?? ''),
     eventId: toNumber(raw.event_id) || null,
-    quantity: toNumber(raw.nb_seat, 1),
+    quantity: toNumber(raw.nb_seat, seats.length || 1),
     totalPrice: toNumber(raw.total),
+    unitPrice: seats[0]?.price ?? 0,
+    type: seats[0]?.type ?? 'Standard',
     paymentMethod: raw.payment_method ?? null,
     transactionId: raw.transaction_id ?? null,
     status: raw.status ?? 'Booked',
     createdAt: raw.created_at ?? null,
+    seats,
     raw,
   }
 }

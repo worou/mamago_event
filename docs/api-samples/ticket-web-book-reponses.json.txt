@@ -1,0 +1,80 @@
+{
+    "ticket": {
+        "user_id": 1,
+        "event_id": "14",
+        "nb_seat": "1",
+        "total": "15",
+        "transaction_id": "lklklkl4",
+        "payment_method": "stripe",
+        "status": "Booked",
+        "created_at": "2026-07-29T23:11:20.000000Z",
+        "updated_at": "2026-07-29T23:11:20.000000Z",
+        "id": 18,
+        "seats": [
+            {
+                "id": 14,
+                "ticket_id": 18,
+                "event_id": 14,
+                "name": "Cedric_NG",
+                "ticket_number": "100012",
+                "ticket_type": "standard",
+                "seat": "1",
+                "price": 15,
+                "qr_code": "MAMAGO://ticket/TCK-100012-2026-0//Cedric_NG//standard", ////// LE QR CODE A AFFICHE
+                "status": "Booked",
+                "comments": null,
+                "created_at": "2026-07-29T23:11:20.000000Z",
+                "updated_at": "2026-07-29T23:11:20.000000Z"
+            }
+        ]
+    }
+}
+
+
+
+{
+    "ticket": {
+        "user_id": 1,
+        "event_id": "14",
+        "nb_seat": "2",
+        "total": "30",
+        "transaction_id": "lklklkl4",
+        "payment_method": "stripe",
+        "status": "Booked",
+        "created_at": "2026-07-29T23:14:00.000000Z",
+        "updated_at": "2026-07-29T23:14:00.000000Z",
+        "id": 19,
+        "seats": [
+            {
+                "id": 15,
+                "ticket_id": 19,
+                "event_id": 14,
+                "name": "Cedric_NG",
+                "ticket_number": "100013",
+                "ticket_type": "standard",
+                "seat": "1",
+                "price": 15,
+                "qr_code": "MAMAGO://ticket/TCK-100013-2026-0//Cedric_NG//standard",
+                "status": "Booked",
+                "comments": null,
+                "created_at": "2026-07-29T23:14:00.000000Z",
+                "updated_at": "2026-07-29T23:14:00.000000Z"
+            },
+            {
+                "id": 16,
+                "ticket_id": 19,
+                "event_id": 14,
+                "name": "Cedric_NG",
+                "ticket_number": "100014",
+                "ticket_type": "standard",
+                "seat": "2",
+                "price": 15,
+                "qr_code": "MAMAGO://ticket/TCK-100014-2026-1//Cedric_NG//standard",
+                "status": "Booked",
+                "comments": null,
+                "created_at": "2026-07-29T23:14:00.000000Z",
+                "updated_at": "2026-07-29T23:14:00.000000Z"
+            }
+        ]
+    }
+}

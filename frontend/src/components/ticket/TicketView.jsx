@@ -104,28 +104,80 @@ export default function TicketView({ ticket, event, buyerName, actions }) {
         {/* Colonne billet */}
         <div className="card p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-brand-700">Votre billet</h2>
+            <h2 className="text-lg font-bold text-brand-700">
+              {ticket.seats?.length > 1 ? 'Vos billets' : 'Votre billet'}
+            </h2>
             <Badge tone={isPending ? 'warning' : 'success'}>
               {isPending ? 'En attente' : 'Confirmé'}
             </Badge>
           </div>
 
-          <TicketStub
-            ticket={ticket}
-            event={event}
-            rows={[
-              ['N° de commande', String(ticket.reference || '—')],
-              ['Nom', buyerName || '—'],
-              ['Type de billet', ticket.type],
-              ['Quantité', String(ticket.quantity)],
-              ...(ticket.unitPrice > 0
-                ? [['Prix unitaire', formatMoney(ticket.unitPrice, config)]]
-                : []),
-              ...(ticket.totalPrice > 0
-                ? [['Total payé', formatMoney(ticket.totalPrice, config)]]
-                : []),
-            ]}
-          />
+          {/*
+            Le serveur émet une place par billet, chacune avec son propre
+            numéro et son propre QR code : deux billets donnent deux QR
+            distincts, qu'il faut donc tous présenter.
+          */}
+          {ticket.seats?.length > 0 ? (
+            <div className="space-y-5">
+              {ticket.seats.map((seat, index) => (
+                <div key={seat.id ?? index}>
+                  {ticket.seats.length > 1 && (
+                    <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Place {index + 1} sur {ticket.seats.length}
+                    </p>
+                  )}
+                  <TicketStub
+                    ticket={{ ...ticket, qrPayload: seat.qrPayload }}
+                    event={event}
+                    rows={[
+                      ['N° de billet', seat.number || String(ticket.reference)],
+                      ['Nom', seat.holderName || buyerName || '—'],
+                      ['Type de billet', seat.type],
+                      ...(seat.price > 0
+                        ? [['Prix', formatMoney(seat.price, config)]]
+                        : []),
+                    ]}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <TicketStub
+              ticket={ticket}
+              event={event}
+              rows={[
+                ['N° de commande', String(ticket.reference || '—')],
+                ['Nom', buyerName || '—'],
+                ['Type de billet', ticket.type],
+                ['Quantité', String(ticket.quantity)],
+                ...(ticket.unitPrice > 0
+                  ? [['Prix unitaire', formatMoney(ticket.unitPrice, config)]]
+                  : []),
+                ...(ticket.totalPrice > 0
+                  ? [['Total payé', formatMoney(ticket.totalPrice, config)]]
+                  : []),
+              ]}
+            />
+          )}
+
+          {ticket.seats?.length > 0 && (
+            <dl className="mt-5 space-y-2 rounded-xl border border-slate-200 p-4 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-slate-600">N° de commande</dt>
+                <dd className="font-medium break-all text-slate-900">
+                  {ticket.reference}
+                </dd>
+              </div>
+              {ticket.totalPrice > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-slate-600">Total payé</dt>
+                  <dd className="font-semibold text-brand-700">
+                    {formatMoney(ticket.totalPrice, config)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
 
           <div className="mt-6 flex items-start gap-3 rounded-xl bg-brand-50 p-4">
             <ShieldIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
