@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
+import { Spinner } from './components/ui'
 import { useAuth } from './context/AuthContext'
 
 import HomePage from './pages/HomePage'
@@ -13,13 +14,22 @@ import FavoritesPage from './pages/FavoritesPage'
 import AboutPage from './pages/AboutPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import CheckoutInfoPage from './pages/checkout/CheckoutInfoPage'
-import CheckoutPaymentPage from './pages/checkout/CheckoutPaymentPage'
-import CheckoutConfirmationPage from './pages/checkout/CheckoutConfirmationPage'
-import CheckoutTicketPage from './pages/checkout/CheckoutTicketPage'
-import TicketPage from './pages/TicketPage'
-import MyReservationsPage from './pages/MyReservationsPage'
 import NotFoundPage from './pages/NotFoundPage'
+
+/*
+ * Tunnel de réservation et espace client, chargés à la demande.
+ *
+ * Ils entraînent Stripe et jsPDF, inutiles à qui parcourt simplement le
+ * catalogue. Les séparer allège d'autant la première visite.
+ */
+const CheckoutInfoPage = lazy(() => import('./pages/checkout/CheckoutInfoPage'))
+const CheckoutPaymentPage = lazy(() => import('./pages/checkout/CheckoutPaymentPage'))
+const CheckoutConfirmationPage = lazy(
+  () => import('./pages/checkout/CheckoutConfirmationPage'),
+)
+const CheckoutTicketPage = lazy(() => import('./pages/checkout/CheckoutTicketPage'))
+const TicketPage = lazy(() => import('./pages/TicketPage'))
+const MyReservationsPage = lazy(() => import('./pages/MyReservationsPage'))
 
 /** Remet la page en haut à chaque navigation. */
 function ScrollToTop() {
@@ -52,6 +62,13 @@ export default function App() {
       <Header />
 
       <main className="flex-1">
+        <Suspense
+          fallback={
+            <div className="flex justify-center py-32">
+              <Spinner className="h-8 w-8 text-brand-600" />
+            </div>
+          }
+        >
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/evenements" element={<EventsPage />} />
@@ -95,6 +112,7 @@ export default function App() {
 
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </Suspense>
       </main>
 
       <Footer />

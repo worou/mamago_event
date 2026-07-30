@@ -150,11 +150,19 @@ export async function bookTicket({
     transaction_id: transactionId,
   }
 
-  // Client identifié par son compte, ou par ses coordonnées s'il commande
-  // en invité. Les deux ne sont jamais transmis ensemble.
-  if (customer?.userId) {
-    body.user_id = customer.userId
-  } else if (customer) {
+  /*
+   * Coordonnées de l'acheteur.
+   *
+   * L'email est transmis **dans tous les cas**, connecté ou non : c'est
+   * l'adresse de réception du billet, et le serveur ne peut pas la déduire
+   * du compte puisqu'il force `user_id` à 1. Sans cela, le billet d'un
+   * client connecté partirait vers l'utilisateur n° 1.
+   *
+   * `user_id` s'y ajoute quand il est connu, pour rattacher la réservation
+   * au compte dès que le serveur l'honorera.
+   */
+  if (customer) {
+    if (customer.userId) body.user_id = customer.userId
     body.name = customer.lastName ?? ''
     body.prenom = customer.firstName ?? ''
     body.email = customer.email ?? ''
@@ -181,28 +189,4 @@ export async function fetchMyTickets(signal) {
   return adaptTicketList(
     await api.get(routes.MY_TICKETS_URI, { auth: true, signal }),
   )
-}
-
-/**
- * Construit l'URL de la page de paiement hébergée par le backend.
- *
- * Le paiement par carte ne peut pas être finalisé dans le navigateur seul :
- * la clé secrète Stripe reste côté serveur. La plateforme expose donc une
- * page de paiement à laquelle on transmet la commande, puis qui redirige
- * vers `callback` une fois le règlement effectué.
- */
-export function buildHostedPaymentUrl({
-  orderId,
-  customerId,
-  paymentMethod = 'stripe',
-  callback,
-}) {
-  const params = new URLSearchParams({
-    order_id: String(orderId),
-    customer_id: String(customerId ?? ''),
-    payment_method: paymentMethod,
-  })
-  if (callback) params.set('callback', callback)
-
-  return `${api.baseUrl}${routes.HOSTED_PAYMENT_PATH}?${params.toString()}`
 }

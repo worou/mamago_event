@@ -156,11 +156,16 @@ function CheckoutPaymentInner() {
         total,
         paymentMethod: activeMethod,
         transactionId,
-        // Compte si connecté, coordonnées saisies sinon.
-        customer:
-          isAuthenticated && user?.id
-            ? { userId: user.id }
-            : guest,
+        // L'email accompagne toujours la commande : c'est l'adresse de
+        // réception du billet. Le compte s'y ajoute quand il existe.
+        customer: isAuthenticated
+          ? {
+              userId: user?.id,
+              firstName: user?.firstName || user?.name || '',
+              lastName: user?.lastName || '',
+              email: user?.email || guest?.email || '',
+            }
+          : guest,
       })
 
       setOrder({

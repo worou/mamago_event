@@ -150,8 +150,8 @@ export default function EventDetailPage() {
   )
 
   /**
-   * Une seule catégorie par commande : `ticket/book` n'accepte qu'un
-   * `event_price_id`. Sélectionner une autre catégorie remplace la précédente.
+   * Une seule catégorie par commande : `ticket/web/book` n'accepte qu'un
+   * `ticket_type`. Sélectionner une autre catégorie remplace la précédente.
    */
   function setQuantity(tierId, quantity) {
     setQuantities(quantity > 0 ? { [tierId]: quantity } : {})

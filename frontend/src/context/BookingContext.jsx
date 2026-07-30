@@ -44,10 +44,9 @@ export function BookingProvider({ children }) {
   /**
    * Une seule catégorie de billet par commande.
    *
-   * `ticket/book` ne prend qu'un `event_price_id` : une sélection mixte
-   * produirait plusieurs commandes distinctes pour un seul paiement. Choisir
-   * une autre catégorie remplace donc la précédente. À revoir si le contrat
-   * de l'API se révèle accepter plusieurs lignes.
+   * `ticket/web/book` ne prend qu'un `ticket_type` : panacher deux
+   * catégories exigerait deux commandes, donc deux paiements. Choisir une
+   * autre catégorie remplace donc la précédente.
    */
   const setQuantity = useCallback((tierId, quantity) => {
     setDraft((prev) => ({

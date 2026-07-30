@@ -66,9 +66,6 @@ export const BOOK_TICKET_URI = '/api/v2/events/ticket/web/book'
  */
 export const PAYMENT_INTENT_URI = '/api/v2/events/ticket/web/payment-intent'
 
-/** Variante authentifiée, conservée pour référence : renvoie 401 sans jeton. */
-export const BOOK_TICKET_CUSTOMER_URI = '/api/v2/customer/events/ticket/book'
-
 export const MY_TICKETS_URI = '/api/v2/customer/events/ticket/list'
 
 /**
@@ -83,16 +80,8 @@ export const MY_TICKETS_URI = '/api/v2/customer/events/ticket/list'
 export const RESEND_TICKET_MAIL_URI = '/api/v2/events/ticket/web/resend-mail'
 
 /**
- * Page de paiement hébergée par le backend. Les clés secrètes Stripe ne
- * transitant jamais par le navigateur, le tunnel redirige vers cette page
- * puis revient sur l'application.
- */
-export const HOSTED_PAYMENT_PATH = '/payment-mobile'
-
-/**
  * L'API ne fournit pas de route de détail par événement
  * (/api/v2/events/{id} et /api/v2/events/details/{id} renvoient 404).
  * `events/list` retournant déjà l'objet complet — description, galeries,
  * organisateurs, grille tarifaire — la fiche est hydratée depuis la liste.
  */
-export const HAS_EVENT_DETAIL_ENDPOINT = false
