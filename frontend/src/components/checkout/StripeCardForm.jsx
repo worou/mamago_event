@@ -1,4 +1,5 @@
 import { CardElement } from '@stripe/react-stripe-js'
+import { isStripeTestMode } from '../../lib/payment'
 import { Field } from '../ui'
 import { LockIcon, ShieldIcon } from '../Icons'
 
@@ -42,6 +43,36 @@ export default function StripeCardForm({ holderName, onHolderNameChange, error }
           className="field uppercase"
         />
       </Field>
+
+      {/*
+        Signalé là où la confusion coûterait le plus cher : au moment de
+        saisir une carte. Un paiement de test pris pour un vrai — ou
+        l'inverse — se paie en litige client.
+      */}
+      {isStripeTestMode() && (
+        <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            Mode test — aucun montant n'est réellement débité
+          </p>
+          <dl className="mt-2 space-y-1 text-xs text-amber-800">
+            <div className="flex gap-2">
+              <dt className="font-mono">4242 4242 4242 4242</dt>
+              <dd>paiement accepté</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="font-mono">4000 0000 0000 0002</dt>
+              <dd>paiement refusé</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="font-mono">4000 0025 0000 3155</dt>
+              <dd>authentification 3D Secure</dd>
+            </div>
+          </dl>
+          <p className="mt-2 text-xs text-amber-700">
+            Date d'expiration future quelconque, CVC quelconque.
+          </p>
+        </div>
+      )}
 
       <Field label="Coordonnées bancaires" error={error}>
         <div className="rounded-xl border border-slate-300 bg-white px-4 py-3.5 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">

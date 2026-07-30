@@ -25,6 +25,19 @@ export function isCardPaymentConfigured() {
 }
 
 /**
+ * Mode Stripe déduit du préfixe de la clé publiable.
+ *
+ * Aucun réglage séparé n'est nécessaire — et donc aucun risque qu'il
+ * contredise la clé réellement employée. Le repère affiché disparaît de
+ * lui-même dès qu'une clé `pk_live_` est configurée.
+ */
+export function isStripeTestMode() {
+  return String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '').startsWith(
+    'pk_test_',
+  )
+}
+
+/**
  * Demande au serveur de créer l'intention de paiement.
  *
  * Le montant n'est volontairement pas transmis : c'est au serveur de le
